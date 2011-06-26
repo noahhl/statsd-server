@@ -83,7 +83,7 @@ module Statsd
       end 
       # send to graphite
       send_data stat_string
-      puts "complete. (#{time.round(3)}s)"
+      puts "complete. (#{(time*100).round()/100.0}s)"
       close_connection_after_writing
     end
   end
