@@ -1,3 +1,4 @@
+require 'socket'
 # encoding: utf-8
 module Statsd
 
@@ -65,12 +66,10 @@ module Statsd
       rescue Exception => e # silent but deadly
         puts e.message
       ensure
-        sock.try(:close)
+        sock.close
       end
       true
     end
-    
-  
   end
 end 
 
