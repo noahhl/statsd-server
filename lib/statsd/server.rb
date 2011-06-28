@@ -1,3 +1,4 @@
+gem 'eventmachine'
 require 'eventmachine'
 require 'yaml'
 require 'erb'

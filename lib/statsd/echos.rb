@@ -1,8 +1,6 @@
 #!/usr/bin/env ruby
-#
-
 require 'rubygems'
-require 'eventmachine'
+gem 'eventmachine'
 
 module EchoServer
   def post_init

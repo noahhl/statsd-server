@@ -1,4 +1,5 @@
 require 'benchmark'
+gem 'eventmachine'
 require 'eventmachine'
 module Statsd
   class Graphite < EM::Connection
