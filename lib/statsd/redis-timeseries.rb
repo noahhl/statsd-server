@@ -16,14 +16,11 @@ class Array
 end
 
 class RedisTimeSeries
-    def initialize(prefix, timestep, redis, expires=nil, summarize=false, suffix = nil, aggregation = 'mean')
+    def initialize(prefix, timestep, redis, expires=nil)
         @prefix = prefix
-        @suffix = suffix
         @timestep = timestep
         @redis = redis
         @expires= expires
-        @summarize = summarize 
-        @aggregation = aggregation
     end
 
     def normalize_time(t, step=@timestep)
@@ -71,10 +68,10 @@ class RedisTimeSeries
         end
     end
 
-    def aggregate(history, ttl)
+    def aggregate(history, ttl, aggregation = 'mean')
         now = Time.now.to_f
         start_time = now - history
-        aggregate_value = fetch_range(start_time, now).collect{|d| d[:data].to_f}.method(@aggregation).call rescue nil
+        aggregate_value = fetch_range(start_time, now).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
         unless aggregate_value.nil?
           @redis.setex("#{getkey(now.to_i, history)}:#{history}", ttl, compute_value_for_key(aggregate_value.to_s, now))
         end

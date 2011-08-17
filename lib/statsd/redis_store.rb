@@ -6,21 +6,32 @@ module Statsd
 
   class RedisStore
     class << self
-      attr_accessor :host, :port, :flush_interval, :key_size, :retentions, :expirations
+      attr_accessor :host, :port, :flush_interval, :key_size, :retentions
     end
-    
-    def self.prepare
 
-      expirations = []
-      retentions.each_with_index do |retention, i|
-        expirations[i] = {:seconds => retention.split(":")[1].to_i, 
-          :fraction => (1-(retention.split(":")[0].to_f/retentions[i+1].split(":")[0].to_i rescue 0)) * (1- (expirations[i-1][:fraction] rescue 0)) + (expirations[i-1][:fraction] rescue 0)
-                         }
+    def self.store_all_retentions(key, value, redis)
+      main_interval = retentions[0].split(":")[0].to_i
+      retentions.each_with_index do |retention, index|
+        interval = retention.split(":")[0].to_i
+        num_to_save = retention.split(":")[1].to_i
+        expiration = num_to_save * interval
+        
+
+        if index == 0
+          RedisTimeSeries.new(prefix = "#{key}", timestep = interval, redis, expiration).add(value.to_s)
+        else
+          aggregation = case key
+                        when /min/ then "min"
+                        when /max/ then "max"
+                        when /mean|upper_/ then "mean"
+                        else "sum"
+                        end
+          RedisTimeSeries.new(prefix = "#{key}", timestep = main_interval, redis, expiration).aggregate(interval, num_to_save * interval, aggregation)
+        end
       end
-
-      self.expirations = expirations
-
+      
     end
+
 
     def self.flush_stats(counters, timers)
      
@@ -33,7 +44,7 @@ module Statsd
       
       #store counters
       counters.each_pair do |key, value|
-          RedisTimeSeries.new("statsd:#{key}", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]*flush_interval).add(value.to_s)
+          store_all_retentions(key, value, redis)
           num_stats += 1
       end
    
@@ -61,12 +72,12 @@ module Statsd
 
           # Flush Values to Store
           
-          expire = expirations.find{|e| e[:fraction] >= rand}[:seconds]
-          RedisTimeSeries.new("statsd_timers:#{key}:mean", timestep, redis, expire*flush_interval).add(mean.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:max", timestep, redis, expire*flush_interval ).add(max.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:min", timestep, redis, expire*flush_interval).add(min.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:upper_#{pct_threshold}", timestep, redis, expire*flush_interval).add(max_at_threshold.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:count", timestep, redis, expire*flush_interval).add(count.to_s)
+          store_all_retentions("statsd_timers:#{key}:mean", mean.to_s, redis)
+          store_all_retentions("statsd_timers:#{key}:max", max.to_s, redis)
+          store_all_retentions("statsd_timers:#{key}:min", min.to_s, redis)
+          store_all_retentions("statsd_timers:#{key}:upper_#{pct_threshold}", max_at_threshold.to_s, redis)
+          store_all_retentions("statsd_timers:#{key}:count", count.to_s, redis)
+          
           num_stats += 1
         end
       end
