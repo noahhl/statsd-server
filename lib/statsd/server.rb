@@ -1,3 +1,4 @@
+require 'rubygems'
 gem 'eventmachine'
 require 'eventmachine'
 require 'yaml'
@@ -68,7 +69,16 @@ module Statsd
         if options[:graphite]
           require 'statsd/graphite' 
         end
-      
+        
+        if options[:redis]
+          require 'statsd/redis_store'
+          Statsd::RedisStore.host = config["redis_host"]
+          Statsd::RedisStore.port = config["redis_port"]
+          Statsd::RedisStore.flush_interval = config['flush_interval']
+          Statsd::RedisStore.key_size = config['redis_key_size']
+        end
+
+
         # Start the server
         EventMachine::run do
           EventMachine::open_datagram_socket(config['bind'], config['port'], Statsd::Server)  
@@ -80,6 +90,10 @@ module Statsd
              # Flush Adapters
             if options[:mongo]
               EM.defer { Statsd::Mongo.flush_stats(counters,timers) } 
+            end
+
+            if options[:redis]
+              EM.defer { Statsd::RedisStore.flush_stats(counters,timers) } 
             end
 
             if options[:graphite]

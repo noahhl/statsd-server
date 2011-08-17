@@ -3,7 +3,7 @@ bind: 127.0.0.1
 port: 8125
 
 # Flush interval should be your finest retention in seconds
-flush_interval: 10        
+flush_interval: 2
 
 # Graphite
 graphite_host: localhost
@@ -12,6 +12,11 @@ graphite_port: 2003
 # Mongo
 mongo_host: localhost
 mongo_database: statsdb
+
+# Redis
+redis_host: maggie.local 
+redis_port: 6379
+redis_key_size: 150 #How many data points should each key hold, at full flush interval?
 
 # If you change these, you need to delete the capped collections yourself!
 # Average mongo record size is 152 bytes

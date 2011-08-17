@@ -3,6 +3,8 @@ require 'statsd'
 require 'statsd/server'
 require 'statsd/mongo'
 require 'statsd/graphite'
+require 'statsd/redis'
+require 'statsd/redis-timeseries'
 
 require 'yaml'
 require 'erb'
@@ -24,6 +26,12 @@ Statsd::Mongo.hostname = APP_CONFIG['mongo_host']
 Statsd::Mongo.database = APP_CONFIG['mongo_database']
 Statsd::Mongo.retentions = APP_CONFIG['retentions']
 Statsd::Mongo.flush_interval = APP_CONFIG['flush_interval']
+
+Statsd::Redis.host = APP_CONFIG["redis_host"]
+Statsd::Redis.port = APP_CONFIG["redis_port"]
+Statsd::Redis.flush_interval = APP_CONFIG['flush_interval']
+
+
 EventMachine::run do
   EventMachine::open_datagram_socket('127.0.0.1', 8125, Statsd::Server)  
   EventMachine::add_periodic_timer(APP_CONFIG['flush_interval']) do
@@ -37,7 +45,13 @@ EventMachine::run do
      #   Statsd::Mongo.flush_stats(counters,timers)
      # end
      #
-     
+    
+     # Redis
+
+     EM.defer do
+       Statsd::Redis.flush_stats(counters, timers)
+     end
+
      # Graphite
      EventMachine.connect APP_CONFIG['graphite_host'], APP_CONFIG['graphite_port'], Statsd::Graphite do |conn|
        conn.counters = counters

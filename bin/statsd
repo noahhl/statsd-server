@@ -7,7 +7,7 @@ require 'optparse'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:graphite => true, :mongo => false}
+  options = {:graphite => false, :mongo => false, :redis => false}
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -21,13 +21,17 @@ begin
 
     opts.on("-m", "--mongo", "Flush and aggregate stats to MongoDB") do 
      options[:mongo] = true
-     options[:graphite] = false
     end
+
 
     opts.on("-g", "--graphite", "Flush stats to Graphite") do 
      options[:graphite] = true
     end
-
+    
+    opts.on("-r", "--redis", "Flush stats to Redis") do 
+     options[:redis] = true
+    end
+    
     opts.on("-h", "--help", "Show this message") do
       puts opts
       exit
