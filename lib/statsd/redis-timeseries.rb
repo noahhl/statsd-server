@@ -1,11 +1,27 @@
 require 'base64'
 
+class Array
+  
+ def sum
+   inject( nil ) { |sum,x| sum ? sum+x : x }; 
+ end
+
+ def mean
+   self.sum / self.length
+ end
+ 
+ def median
+   self.sort[self.length/2]
+ end
+end
+
 class RedisTimeSeries
-    def initialize(prefix,timestep,redis, expires=nil)
+    def initialize(prefix,timestep,redis, expires=nil, num_to_summarize=nil)
         @prefix = prefix
         @timestep = timestep
         @redis = redis
         @expires= expires
+        @num_to_summarize = num_to_summarize
     end
 
     def normalize_time(t)
@@ -33,21 +49,29 @@ class RedisTimeSeries
         end
     end
 
-    def add(data,origin_time=nil)
+    def compute_value_for_key(data, now, origin_time=nil)
         data = tsencode(data)
         origin_time = tsencode(origin_time) if origin_time
-        now = Time.now.to_f
         value = "#{now}\x01#{data}"
         value << "\x01#{origin_time}" if origin_time
         value << "\x00"
-       
+        return value
+    end
+
+    def add(data, origin_time=nil)
+        now = Time.now.to_f
+        value = compute_value_for_key(data, now, origin_time)
         if @expires.nil?
           @redis.append(getkey(now.to_i),value)
         else
-          @redis.append(getkey(now.to_i),value)       
-          @redis.expire(getkey(now.to_i), @expires)
+          if @num_to_summarize.nil? || fetch_timestep(normalize_time(now)).count < @num_to_summarize
+            @redis.append(getkey(now.to_i),value)       
+            @redis.expire(getkey(now.to_i), @expires)
+          else
+            aggregate_value = fetch_timestep(normalize_time(now)).collect{|d| d[:data].to_f}.sum
+            @redis.setex(getkey(now.to_i), @expires, compute_value_for_key(aggregate_value.to_s, now, origin_time))
+          end
         end
-
     end
 
     def decode_record(r)
