@@ -5,7 +5,6 @@ require 'yaml'
 require 'erb'
 module Statsd
   module Server #< EM::Connection  
-    Version = '0.5.4'  
     
     FLUSH_INTERVAL = 10
     COUNTERS = {}
@@ -39,7 +38,7 @@ module Statsd
               sample_rate = fields[2].match(/^@([\d\.]+)/)[1]
             end
             COUNTERS[key] ||= 0
-            COUNTERS[key] += (fields[0].to_i || 1) * (1.0 / sample_rate.to_f)
+            COUNTERS[key] += (fields[0].to_f || 1) * (1.0 / sample_rate.to_f)
           end
         end
       end

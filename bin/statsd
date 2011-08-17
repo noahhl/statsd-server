@@ -4,6 +4,7 @@ $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
 require 'yaml'
 require 'optparse'
 
+Version = 'statsd version 0.6.0'  
 begin
   ORIGINAL_ARGV = ARGV.dup
   
@@ -16,7 +17,7 @@ begin
     opts.separator "Options:"
 
     opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
-     options[:config] = x
+     options[:config] = x 
     end
 
     opts.on("-m", "--mongo", "Flush and aggregate stats to MongoDB") do 
@@ -32,6 +33,11 @@ begin
      options[:redis] = true
     end
     
+    opts.on("-v", "--version", "Show version") do
+      puts Version
+      exit
+    end
+
     opts.on("-h", "--help", "Show this message") do
       puts opts
       exit
