@@ -43,7 +43,6 @@ class RedisTimeSeries
        
         if @expires.nil?
           @redis.append(getkey(now.to_i),value)
-          puts "expiraiton nil"
         else
           @redis.append(getkey(now.to_i),value)       
           @redis.expire(getkey(now.to_i), @expires)
