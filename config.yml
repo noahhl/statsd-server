@@ -16,7 +16,15 @@ mongo_database: statsdb
 # Redis
 redis_host: maggie.local 
 redis_port: 6379
-redis_key_size: 150 #How many data points should each key hold, at full flush interval?
+redis_key_size: 150 # What's the minimum unit of length 
+# Uses the same format as graphite's schema retentions, accomplished by
+# expiring keys randomly based on time intervals
+# "10:2160,60:10080,600:262974" translates to:
+# 6 hours of 10 second data (what we consider "near-realtime")
+# 1 week of 1 minute data
+# 5 years of 10 minute data
+redis_retention: "10:2160,60:10080,600:262974"
+
 
 # If you change these, you need to delete the capped collections yourself!
 # Average mongo record size is 152 bytes

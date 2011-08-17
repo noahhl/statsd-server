@@ -1,10 +1,11 @@
 require 'base64'
 
 class RedisTimeSeries
-    def initialize(prefix,timestep,redis)
+    def initialize(prefix,timestep,redis, expires=nil)
         @prefix = prefix
         @timestep = timestep
         @redis = redis
+        @expires= expires
     end
 
     def normalize_time(t)
@@ -39,7 +40,15 @@ class RedisTimeSeries
         value = "#{now}\x01#{data}"
         value << "\x01#{origin_time}" if origin_time
         value << "\x00"
-        @redis.append(getkey(now.to_i),value)
+       
+        if @expires.nil?
+          @redis.append(getkey(now.to_i),value)
+          puts "expiraiton nil"
+        else
+          @redis.append(getkey(now.to_i),value)       
+          @redis.expire(getkey(now.to_i), @expires)
+        end
+
     end
 
     def decode_record(r)

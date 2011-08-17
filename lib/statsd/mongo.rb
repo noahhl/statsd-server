@@ -89,6 +89,7 @@ module Statsd
       docs = []
       fine_stats_collection = db.collection(retentions.first['name']) # Use the finest granularity for now
       retentions[1..-1].each_with_index do |retention,index|
+
         # fine_stats_collection = db.collection(retentions[index]['name'])
         coarse_stats_collection = db.collection(retention['name'])
         puts "Aggregating #{retention['name']}"
@@ -96,6 +97,7 @@ module Statsd
         current_coarse_bucket = current_bucket / step * step - step
         previous_coarse_bucket = current_coarse_bucket - step
         puts "#{Time.at(previous_coarse_bucket)}..#{Time.at(current_coarse_bucket)}"
+        
         # Look up previous bucket
         if coarse_stats_collection.find({:ts => previous_coarse_bucket}).count == 0
           # Aggregate

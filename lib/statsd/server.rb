@@ -76,6 +76,8 @@ module Statsd
           Statsd::RedisStore.port = config["redis_port"]
           Statsd::RedisStore.flush_interval = config['flush_interval']
           Statsd::RedisStore.key_size = config['redis_key_size']
+          Statsd::RedisStore.retentions = config['redis_retention'].split(',')
+          Statsd::RedisStore.prepare
         end
 
 

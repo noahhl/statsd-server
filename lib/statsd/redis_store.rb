@@ -6,22 +6,34 @@ module Statsd
 
   class RedisStore
     class << self
-      attr_accessor :host, :port, :flush_interval, :key_size
+      attr_accessor :host, :port, :flush_interval, :key_size, :retentions, :expirations
     end
+    
+    def self.prepare
 
+      expirations = []
+      retentions.each_with_index do |retention, i|
+        expirations[i] = {:seconds => retention.split(":")[1].to_i, 
+          :fraction => (1-(retention.split(":")[0].to_f/retentions[i+1].split(":")[0].to_i rescue 0)) * (1- (expirations[i-1][:fraction] rescue 0)) + (expirations[i-1][:fraction] rescue 0)
+                         }
+      end
+
+      self.expirations = expirations
+
+    end
 
     def self.flush_stats(counters, timers)
      
       print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to Redis\n"
       redis = Redis.new(:host => host, :port => port)
       num_stats = 0
-      timestep = key_size * flush_interval 
       
+      
+      timestep = flush_interval 
       
       #store counters
       counters.each_pair do |key, value|
-          ts = RedisTimeSeries.new("statsd:#{key}", timestep, redis)
-          ts.add(value.to_s)
+          RedisTimeSeries.new("statsd:#{key}", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]).add(value.to_s)
           num_stats += 1
       end
    
@@ -48,11 +60,11 @@ module Statsd
           end
 
           # Flush Values to Store
-          RedisTimeSeries.new("statsd_timers:#{key}:mean", timestep, redis).add(mean.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:max", timestep, redis).add(max.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:min", timestep, redis).add(min.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:upper_#{pct_threshold}", timestep, redis).add(max_at_threshold.to_s)
-          RedisTimeSeries.new("statsd_timers:#{key}:count", timestep, redis).add(count.to_s)
+          RedisTimeSeries.new("statsd_timers:#{key}:mean", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]).add(mean.to_s)
+          RedisTimeSeries.new("statsd_timers:#{key}:max", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]).add(max.to_s)
+          RedisTimeSeries.new("statsd_timers:#{key}:min", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]).add(min.to_s)
+          RedisTimeSeries.new("statsd_timers:#{key}:upper_#{pct_threshold}", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]).add(max_at_threshold.to_s)
+          RedisTimeSeries.new("statsd_timers:#{key}:count", timestep, redis, expirations.find{|e| e[:fraction] >= rand}[:seconds]).add(count.to_s)
           num_stats += 1
         end
       end
@@ -60,7 +72,6 @@ module Statsd
 
 
     end
-
 
   end
 end
