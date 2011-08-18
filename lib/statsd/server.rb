@@ -32,7 +32,7 @@ module Statsd
           fields = record.split("|")    
           if (fields[1].strip == "ms") 
             TIMERS[key] ||= []
-            TIMERS[key].push(fields[0].to_i)
+            TIMERS[key].push(fields[0].to_f)
           else
             if (fields[2] && fields[2].match(/^@([\d\.]+)/)) 
               sample_rate = fields[2].match(/^@([\d\.]+)/)[1]
