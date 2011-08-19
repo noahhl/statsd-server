@@ -6,7 +6,7 @@ module Statsd
 
   class RedisStore
     class << self
-      attr_accessor :host, :port, :flush_interval, :key_size, :retentions
+      attr_accessor :host, :port, :flush_interval, :retentions
     end
 
     def self.store_all_retentions(key, value, redis)

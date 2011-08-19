@@ -14,9 +14,8 @@ mongo_host: localhost
 mongo_database: statsdb
 
 # Redis
-redis_host: maggie.local 
+redis_host: localhost 
 redis_port: 6379
-redis_key_size: 150 # What's the minimum unit of length 
 # Uses the same format as graphite's schema retentions, accomplished by
 # expiring keys randomly based on time intervals
 # "10:2160,60:10080,600:262974" translates to:
