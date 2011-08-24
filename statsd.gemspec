@@ -4,7 +4,7 @@ $:.unshift lib unless $:.include?(lib)
 require File.expand_path("../lib/statsd/server", __FILE__) # for version info
 Gem::Specification.new do |s|
   s.name        = "statsd"
-  s.version     = "0.6.0"
+  s.version     = "0.6.1"
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Andrew Coldham', 'Ben VandenBos']
   s.email       = ['quasor@me.com']

@@ -44,7 +44,7 @@ module Statsd
       
       #store counters
       counters.each_pair do |key, value|
-          store_all_retentions(key, value, redis)
+          store_all_retentions("counters:#{key}", value, redis)
           num_stats += 1
       end
    
@@ -72,11 +72,11 @@ module Statsd
 
           # Flush Values to Store
           
-          store_all_retentions("statsd_timers:#{key}:mean", mean.to_s, redis)
-          store_all_retentions("statsd_timers:#{key}:max", max.to_s, redis)
-          store_all_retentions("statsd_timers:#{key}:min", min.to_s, redis)
-          store_all_retentions("statsd_timers:#{key}:upper_#{pct_threshold}", max_at_threshold.to_s, redis)
-          store_all_retentions("statsd_timers:#{key}:count", count.to_s, redis)
+          store_all_retentions("timers:#{key}:mean", mean.to_s, redis)
+          store_all_retentions("timers:#{key}:max", max.to_s, redis)
+          store_all_retentions("timers:#{key}:min", min.to_s, redis)
+          store_all_retentions("timers:#{key}:upper_#{pct_threshold}", max_at_threshold.to_s, redis)
+          store_all_retentions("timers:#{key}:count", count.to_s, redis)
           
           num_stats += 1
         end
