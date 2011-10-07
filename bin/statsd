@@ -4,7 +4,7 @@ $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
 require 'yaml'
 require 'optparse'
 
-Version = 'statsd version 0.6.3'
+Version = 'statsd version 0.6.4'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
