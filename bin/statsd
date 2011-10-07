@@ -8,7 +8,7 @@ Version = 'statsd version 0.6.3'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:graphite => false, :mongo => false, :redis => false}
+  options = {:graphite => false, :mongo => false, :redis => false, :simpledb => false}
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -24,7 +24,6 @@ begin
      options[:mongo] = true
     end
 
-
     opts.on("-g", "--graphite", "Flush stats to Graphite") do 
      options[:graphite] = true
     end
@@ -33,6 +32,10 @@ begin
      options[:redis] = true
     end
     
+    opts.on("-s", "--simpledb", "Flush stats to SimpleDB") do 
+     options[:simpledb] = true
+    end
+
     opts.on("-v", "--version", "Show version") do
       puts Version
       exit
