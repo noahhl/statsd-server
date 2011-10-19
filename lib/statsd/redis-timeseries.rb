@@ -19,11 +19,20 @@ end
 
 class RedisTimeSeries
 
-  def initialize(prefix, timestep, redis, expires=nil)
+  def initialize(prefix, timestep, redis)
       @prefix = prefix
       @timestep = timestep
       @redis = redis
       @redis.sadd "datapoints", prefix
+  end
+
+  def cleanup(retentions)
+    histories = retentions.split(",").collect{|r| i,n = r.split(":"); i.to_i * n.to_i }
+    histories.each_with_index do |history, index|
+      suffix = index.zero? ? "" : ":#{retentions.split(",")[index].split(":")[0]}"
+      @redis.zremrangebyscore "#{@prefix}#{suffix}", 0, Time.now.to_i - history
+    end
+
   end
 
   def normalize_time(t, step=@timestep)
@@ -63,10 +72,10 @@ class RedisTimeSeries
       aggregation = (aggregation == "sum") ? "array_sum" :  aggregation
       start_time = normalize_time(Time.now.to_f, history+1)
       end_time = start_time + history+1
-      aggregate_value = fetch_range(start_time, end_time, strict=true).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
-      unless aggregate_value.nil?
-        @redis.zadd("#{@prefix}:#{history}", normalize_time(end_time), compute_value_for_key(aggregate_value.to_s, end_time))
-      end
+      aggregate_value = fetch_range(start_time, end_time).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
+      key_time = normalize_time(end_time, history)
+      @redis.zremrangebyscore("#{@prefix}:#{history}", key_time - 1, key_time + 1)
+      @redis.zadd("#{@prefix}:#{history}", key_time, compute_value_for_key(aggregate_value.to_s, key_time))
   end
 
   def decode_record(r)
@@ -104,11 +113,8 @@ class RedisTimeSeries
   def fetch_consistent_range(begin_time, end_time, retentions)
     histories = retentions.split(",").collect{|r| i,n = r.split(":"); i.to_i * n.to_i }
     history_to_use =  histories.index{|h| h >= (Time.now.to_i - begin_time)}
-    
-    unless history_to_use.zero? #Within most granular, no suffix range.
-      suffix = ":#{retentions.split(",")[history_to_use].split(":")[0]}"
-      keys = @redis.zrangebyscore "#{@prefix}#{suffix}", begin_time, end_time
-    end
+    suffix = history_to_use.zero? ? "" : ":#{retentions.split(",")[history_to_use].split(":")[0]}"
+    keys = @redis.zrangebyscore "#{@prefix}#{suffix}", begin_time, end_time
     keys.collect{|k| decode_record(k)}
   end
 
