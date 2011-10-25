@@ -1,5 +1,4 @@
 require 'rubygems'
-gem 'eventmachine'
 require 'eventmachine'
 require 'yaml'
 require 'erb'

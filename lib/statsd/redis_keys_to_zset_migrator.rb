@@ -14,20 +14,23 @@ class RedisKeysToZsetMigrator
   def migrate!
     keys = @redis.keys "ts:*"
     keys.each_with_index do |key, index|
-      begin
-        keyname, timeinfo = key.gsub("ts:", "").split(/:[0-9][0-9][0-9][0-9]/)
-        ts, history = timeinfo.split(":")
-        unless history.nil?
-          keyname = "#{keyname}:#{history}"
-        end
-        val = decode_record(@redis.get(key))
-        @redis.zadd keyname, ts.to_i, encode(val[:time], val[:data])
-      rescue Exception => e
-        puts "ERROR: #{e}"
+      migrate_key(key)
+      (index % 50).zero? ? print(".") : nil
+    end
+  end
+
+  def migrate_key(key)
+    begin
+      keyname, timeinfo = key.gsub("ts:", "").split(/:[0-9][0-9][0-9][0-9]/)
+      ts, history = timeinfo.split(":")
+      unless history.nil?
+        keyname = "#{keyname}:#{history}"
       end
-      if (index % 50).zero?
-        print(".")
-      end
+      val = decode_record(@redis.get(key))
+      @redis.zadd keyname, ts.to_i, encode(val[:time], val[:data])
+      @redis.del key
+    rescue Exception => e
+      puts "ERROR: #{e}"
     end
   end
 
