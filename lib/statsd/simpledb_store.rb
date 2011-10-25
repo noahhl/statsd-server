@@ -7,14 +7,20 @@ module Statsd
       attr_accessor :timestep
 
       def store(key, value, sdb)
-          SimpleDBTimeSeries.new(prefix = "#{key}", timestep = self.timestep, sdb).add(value.to_s)
+        if sdb
+          begin
+            SimpleDBTimeSeries.new(prefix = "#{key}", timestep = self.timestep, sdb).add(value.to_s) 
+          rescue 
+            nil
+          end
+        end
       end
 
 
       def flush_stats(counters, timers)
        
         print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to SimpleDB\n"
-        @simpledb ||= AwsSdb::Service.new
+        @simpledb ||= AwsSdb::Service.new rescue nil
         num_stats = 0
         
         #store counters

@@ -103,7 +103,7 @@ module Statsd
             end
 
             if options[:simpledb]
-              EM.defer { Statsd::SimpleDBStore.flush_stats(counters,timers) } 
+              EM.defer { Statsd::SimpleDBStore.flush_stats(counters,timers) rescue nil } 
             end
 
             if options[:graphite]
