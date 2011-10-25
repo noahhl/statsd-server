@@ -6,7 +6,15 @@ module Statsd
 
   class RedisStore
     class << self
-      attr_accessor :host, :port, :flush_interval, :retentions
+      attr_accessor :redis, :host, :port, :flush_interval, :retentions
+    end
+
+    def self.cleanup
+      datapoints = self.redis.smembers("datapoints")
+      print "#{Time.now} Cleaning up #{datapoints.length} datapoints.\n" 
+      datapoints.each do |datapoint|
+        RedisTimeSeries.new(prefix = "#{key}", timestep = interval, self.redis).cleanup(self.retentions)
+      end
     end
 
     def self.store_all_retentions(key, value, redis)
@@ -16,9 +24,8 @@ module Statsd
         num_to_save = retention.split(":")[1].to_i
         expiration = num_to_save * interval
         
-
         if index == 0
-          RedisTimeSeries.new(prefix = "#{key}", timestep = interval, redis, expiration).add(value.to_s)
+          RedisTimeSeries.new(prefix = "#{key}", timestep = interval, redis).add(value.to_s)
         else
           aggregation = case key
                         when /min/ then "min"
@@ -26,7 +33,7 @@ module Statsd
                         when /mean|upper_/ then "mean"
                         else "sum"
                         end
-          RedisTimeSeries.new(prefix = "#{key}", timestep = main_interval, redis, expiration).aggregate(interval, num_to_save * interval, aggregation)
+          RedisTimeSeries.new(prefix = "#{key}", timestep = main_interval, redis).aggregate(interval, aggregation)
         end
       end
       
@@ -36,7 +43,7 @@ module Statsd
     def self.flush_stats(counters, timers)
      
       print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to Redis\n"
-      redis = Redis.new(:host => host, :port => port)
+      self.redis ||= Redis.new(:host => host, :port => port)
       num_stats = 0
       
       
@@ -44,7 +51,7 @@ module Statsd
       
       #store counters
       counters.each_pair do |key, value|
-          store_all_retentions("counters:#{key}", value, redis)
+          store_all_retentions("counters:#{key}", value, self.redis)
           num_stats += 1
       end
    
@@ -72,11 +79,11 @@ module Statsd
 
           # Flush Values to Store
           
-          store_all_retentions("timers:#{key}:mean", mean.to_s, redis)
-          store_all_retentions("timers:#{key}:max", max.to_s, redis)
-          store_all_retentions("timers:#{key}:min", min.to_s, redis)
-          store_all_retentions("timers:#{key}:upper_#{pct_threshold}", max_at_threshold.to_s, redis)
-          store_all_retentions("timers:#{key}:count", count.to_s, redis)
+          store_all_retentions("timers:#{key}:mean", mean.to_s, self.redis)
+          store_all_retentions("timers:#{key}:max", max.to_s, self.redis)
+          store_all_retentions("timers:#{key}:min", min.to_s, self.redis)
+          store_all_retentions("timers:#{key}:upper_#{pct_threshold}", max_at_threshold.to_s, self.redis)
+          store_all_retentions("timers:#{key}:count", count.to_s, self.redis)
           
           num_stats += 1
         end
