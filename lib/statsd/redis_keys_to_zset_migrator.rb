@@ -23,6 +23,7 @@ class RedisKeysToZsetMigrator
     begin
       keyname, timeinfo = key.gsub("ts:", "").split(/:[0-9][0-9][0-9][0-9]/)
       ts, history = timeinfo.split(":")
+      @redis.sadd "datapoints", keyname
       unless history.nil?
         keyname = "#{keyname}:#{history}"
       end
