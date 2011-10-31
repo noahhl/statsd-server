@@ -17,11 +17,13 @@ class RedisKeysToZsetMigrator
       migrate_key(key)
       (index % 50).zero? ? print(".") : nil
     end
+    keys.length
   end
 
   def migrate_key(key)
     begin
-      keyname, timeinfo = key.gsub("ts:", "").split(/:[0-9][0-9][0-9][0-9]/)
+      keyname, timeinfo1, timeinfo2 = key.gsub("ts:", "").rpartition(/:[0-9][0-9][0-9][0-9]/)
+      timeinfo = [timeinfo1, timeinfo2].join.sub(":", "")
       ts, history = timeinfo.split(":")
       @redis.sadd "datapoints", keyname
       unless history.nil?
