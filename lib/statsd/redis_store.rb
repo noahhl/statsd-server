@@ -13,7 +13,7 @@ module Statsd
       datapoints = self.redis.smembers("datapoints")
       print "#{Time.now} Cleaning up #{datapoints.length} datapoints.\n" 
       datapoints.each do |datapoint|
-        RedisTimeSeries.new(prefix = "#{key}", timestep = interval, self.redis).cleanup(self.retentions)
+        RedisTimeSeries.new(prefix = "#{datapoint}", timestep = self.flush_interval, self.redis).cleanup(self.retentions.join(","))
       end
     end
 
