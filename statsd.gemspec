@@ -14,7 +14,7 @@ Gem::Specification.new do |s|
   
   s.required_rubygems_version = ">= 1.3.6"
 
-  s.add_dependency "eventmachine",  ">= 1.0.0"
+  s.add_dependency "eventmachine",  ">= 1.0.0.beta.4"
   s.add_dependency "mongo",         ">= 1.2.4"
   s.add_dependency "erubis",        ">= 2.6.6"
   s.add_dependency "redis",         ">= 2.0.0"
