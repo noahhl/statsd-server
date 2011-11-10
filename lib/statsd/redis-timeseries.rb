@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'redis'
 require 'base64'
+require 'coalmine'
 
 class Array 
   
@@ -24,6 +25,7 @@ class RedisTimeSeries
       @timestep = timestep
       @redis = redis
       @redis.sadd "datapoints", prefix
+      @coalmine = Coalmine::Client.new rescue nil
   end
 
   def cleanup(retentions)
@@ -75,7 +77,7 @@ class RedisTimeSeries
       aggregate_value = fetch_range(start_time, end_time).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
       key_time = normalize_time(end_time, history)
       @redis.zremrangebyscore("#{@prefix}:#{history}", key_time - 1, key_time + 1)
-      @redis.zadd("#{@prefix}:#{history}", key_time, compute_value_for_key(aggregate_value.to_s, key_time))
+      Coalmine::Diskstore.store("#{@prefix}:#{history} #{key_time} #{compute_value_for_key(aggregate_value.to_s, key_time)}") rescue nil
   end
 
   def decode_record(r)
@@ -93,7 +95,11 @@ class RedisTimeSeries
       keys = []
       @aggregations.each do |aggregation|
         if keys.empty?
-          keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", start_time, end_time
+          if aggregation == ""
+            keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", begin_time, end_time
+          else
+              Coalmine::Diskstore.read("#{@prefix}#{suffix} #{begin_time.to_i} #{end_time.to_i}").collect{|k| k.split(":")[1] rescue nil}.compact
+          end
         end
       end
       keys.collect{|k| decode_record(k)}
@@ -104,18 +110,26 @@ class RedisTimeSeries
     keys = []
     @aggregations.each do |aggregation|
       if keys.empty?
-        keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", begin_time, end_time
+        if aggregation == ""
+          keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", begin_time, end_time
+        else
+            Coalmine::Diskstore.read("#{@prefix}#{suffix} #{begin_time.to_i} #{end_time.to_i}").collect{|k| k.split(":")[1] rescue nil}.compact
+        end
       end
     end
-    keys.collect{|k| decode_record(k)}
+    keys.collect{|k| decode_record(k) rescue nil}.compact
   end
 
   def fetch_consistent_range(begin_time, end_time, retentions)
     histories = retentions.split(",").collect{|r| i,n = r.split(":"); i.to_i * n.to_i }
     history_to_use =  histories.index{|h| h >= (Time.now.to_i - begin_time)}
     suffix = history_to_use.zero? ? "" : ":#{retentions.split(",")[history_to_use].split(":")[0]}"
-    keys = @redis.zrangebyscore "#{@prefix}#{suffix}", begin_time, end_time
-    keys.collect{|k| decode_record(k)}
+    if history_to_use == histories.first?
+      keys = @redis.zrangebyscore "#{@prefix}#{suffix}", begin_time, end_time
+      keys.collect{|k| decode_record(k)}
+    else
+      Coalmine::Diskstore.read("#{@prefix}#{suffix} #{begin_time.to_i} #{end_time.to_i}").collect{|k| k.split(":")[1] rescue nil}.compact.collect{|k| decode_record(k) rescue nil}.compact
+    end
   end
 
 end

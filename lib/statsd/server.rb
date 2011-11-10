@@ -70,6 +70,7 @@ module Statsd
         
         if options[:redis]
           require 'statsd/redis_store'
+          ENV["coalmine_data_path"] = config['coalmine_data_path']
           Statsd::RedisStore.host = config["redis_host"]
           Statsd::RedisStore.port = config["redis_port"]
           Statsd::RedisStore.flush_interval = config['flush_interval']
@@ -79,14 +80,15 @@ module Statsd
         if options[:simpledb]
           require 'statsd/simpledb_store'
           Statsd::SimpleDBStore.timestep = config["key_size"].to_i
-#          ENV['AMAZON_ACCESS_KEY_ID'] = config["aws_access_key"] if ENV["AMAZON_ACCESS_KEY_ID"].nil?
-#          ENV['AMAZON_SECRET_ACCESS_KEY'] = config["aws_access_key_secret"] if ENV["AMAZON_SECRET_ACCESS_SKEY"].nil?
+          ENV['AMAZON_ACCESS_KEY_ID'] = config["aws_access_key"] if ENV["AMAZON_ACCESS_KEY_ID"].nil?
+          ENV['AMAZON_SECRET_ACCESS_KEY'] = config["aws_access_key_secret"] if ENV["AMAZON_SECRET_ACCESS_KEY"].nil?
         end
 
 
         # Start the server
         EventMachine::run do
           EventMachine::open_datagram_socket(config['bind'], config['port'], Statsd::Server)  
+          
 
           # Periodically Flush
           EventMachine::add_periodic_timer(config['flush_interval']) do
