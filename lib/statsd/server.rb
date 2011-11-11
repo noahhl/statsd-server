@@ -2,6 +2,7 @@ require 'rubygems'
 require 'eventmachine'
 require 'yaml'
 require 'erb'
+require 'statsd/graphite'
 module Statsd
   module Server #< EM::Connection  
     
@@ -132,9 +133,6 @@ module Statsd
   end 
 end
 
-
-
-require 'statsd/graphite'
 
 
 
