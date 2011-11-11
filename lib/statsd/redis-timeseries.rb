@@ -25,14 +25,17 @@ class RedisTimeSeries
       @timestep = timestep
       @redis = redis
       @redis.sadd "datapoints", prefix
-      @coalmine = Coalmine::Client.new rescue nil
   end
 
   def cleanup(retentions)
     histories = retentions.split(",").collect{|r| i,n = r.split(":"); i.to_i * n.to_i }
     histories.each_with_index do |history, index|
       suffix = index.zero? ? "" : ":#{retentions.split(",")[index].split(":")[0]}"
-      @redis.zremrangebyscore "#{@prefix}#{suffix}", 0, Time.now.to_i - history
+      if suffix == ""
+        @redis.zremrangebyscore "#{@prefix}#{suffix}", 0, Time.now.to_i - history
+      else
+        Coalmine::Diskstore.truncate("#{@prefix}#{suffix} #{Time.now.to_i - history}") rescue nil
+      end
     end
 
   end
@@ -124,7 +127,7 @@ class RedisTimeSeries
     histories = retentions.split(",").collect{|r| i,n = r.split(":"); i.to_i * n.to_i }
     history_to_use =  histories.index{|h| h >= (Time.now.to_i - begin_time)}
     suffix = history_to_use.zero? ? "" : ":#{retentions.split(",")[history_to_use].split(":")[0]}"
-    if history_to_use == histories.first?
+    if suffix == "" 
       keys = @redis.zrangebyscore "#{@prefix}#{suffix}", begin_time, end_time
       keys.collect{|k| decode_record(k)}
     else
