@@ -3,73 +3,103 @@ require 'socket'
 module Statsd
 
   #
-  # Statsd::Client by Ben VandenBos 
-  # http://github.com/bvandenbos/statsd-client
-  # 
+  # Statsd::Client by Rein Henrichs -- github.com/reinh/statsd
+  # Embedding here for legacy reasons
   class Client
+    # = Statsd: A Statsd client (https://github.com/etsy/statsd)
+    #
+    # @example Set up a global Statsd client for a server on localhost:9125
+    #   $statsd = Statsd.new 'localhost', 8125
+    # @example Send some stats
+    #   $statsd.increment 'garets'
+    #   $statsd.timing 'glork', 320
+    # @example Use {#time} to time the execution of a block
+    #   $statsd.time('account.activate') { @account.activate! }
+    # @example Create a namespaced statsd client and increment 'account.activate'
+    #   statsd = Statsd.new('localhost').tap{|sd| sd.namespace = 'account'}
+    #   statsd.increment 'activate'
+    # A namespace to prepend to all statsd calls.
+    attr_accessor :namespace
 
-    Version = '0.0.4'      
-    attr_accessor :host, :port
-  
-    def initialize(host='localhost', port=8125)
-      @host = host
-      @port = port
+    #characters that will be replaced with _ in stat names
+    RESERVED_CHARS_REGEX = /[\:\|\@]/
+    
+    class << self
+      # Set to any standard logger instance (including stdlib's Logger) to enable
+      # stat logging using logger.debug
+      attr_accessor :logger
+    end
+    
+    # @param [String] host your statsd host
+    # @param [Integer] port your statsd port
+    def initialize(host, port=8125)
+      @host, @port = host, port
     end
 
-    # +stat+ to log timing for
-    # +time+ is the time to log in ms
-    def timing(stat, time, sample_rate = 1)
-      send_stats "#{stat}:#{time}|ms", sample_rate
+    # Sends an increment (count = 1) for the given stat to the statsd server. 
+    #
+    # @param stat (see #count)
+    # @param sample_rate (see #count)
+    # @see #count
+    def increment(stat, sample_rate=1); count stat, 1, sample_rate end
+
+    # Sends a decrement (count = -1) for the given stat to the statsd server. 
+    #
+    # @param stat (see #count)
+    # @param sample_rate (see #count)
+    # @see #count
+    def decrement(stat, sample_rate=1); count stat, -1, sample_rate end
+
+    # Sends an arbitrary count for the given stat to the statsd server.
+    #
+    # @param [String] stat stat name
+    # @param [Integer] count count
+    # @param [Integer] sample_rate sample rate, 1 for always
+    def count(stat, count, sample_rate=1); send stat, count, 'c', sample_rate end
+
+    # Sends a timing (in ms) for the given stat to the statsd server. The
+    # sample_rate determines what percentage of the time this report is sent. The
+    # statsd server then uses the sample_rate to correctly track the average
+    # timing for the stat.
+    #
+    # @param stat stat name
+    # @param [Integer] ms timing in milliseconds
+    # @param [Integer] sample_rate sample rate, 1 for always
+    def timing(stat, ms, sample_rate=1); send stat, ms, 'ms', sample_rate end
+
+    # Reports execution time of the provided block using {#timing}.
+    #
+    # @param stat (see #timing)
+    # @param sample_rate (see #timing)
+    # @yield The operation to be timed
+    # @see #timing
+    # @example Report the time (in ms) taken to activate an account
+    #   $statsd.time('account.activate') { @account.activate! }
+    def time(stat, sample_rate=1)
+      start = Time.now
+      result = yield
+      timing(stat, ((Time.now - start) * 1000).round, sample_rate)
+      result
     end
-  
-    # +stats+ can be a string or an array of strings
-    def increment(stats, sample_rate = 1)
-      update_counter stats, 1, sample_rate
-    end
-  
-    # +stats+ can be a string or an array of strings
-    def decrement(stats, sample_rate = 1)
-      update_counter stats, -1, sample_rate
-    end
-  
-    # +stats+ can be a string or array of strings
-    def update_counter(stats, delta = 1, sample_rate = 1)
-      stats = Array(stats)
-      send_stats(stats.map { |s| "#{s}:#{delta}|c" }, sample_rate)
-    end
-  
+
     private
-  
-    def send_stats(data, sample_rate = 1)
-      data = Array(data)
-      sampled_data = []
-    
-      # Apply sample rate if less than one
-      if sample_rate < 1
-        data.each do |d|
-          if rand <= sample_rate
-            sampled_data << "#{d}@#{sample_rate}"
-          end
-        end
-        data = sampled_data
-      end
-    
-      return if data.empty?
-    
-      raise "host and port must be set" unless host && port
-    
-      begin
-        sock = UDPSocket.new
-        data.each do |d|
-          sock.send(d, 0, host, port)
-        end
-      rescue Exception => e # silent but deadly
-        puts e.message
-      ensure
-        sock.close
-      end
-      true
+
+    def sampled(sample_rate)
+      yield unless sample_rate < 1 and rand > sample_rate
     end
+
+    def send(stat, delta, type, sample_rate)
+      prefix = "#{@namespace}." unless @namespace.nil?
+      stat = stat.to_s.gsub('::', '.').gsub(RESERVED_CHARS_REGEX, '_')
+      sampled(sample_rate) { send_to_socket("#{prefix}#{stat}:#{delta}|#{type}#{'|@' << sample_rate.to_s if sample_rate < 1}") }
+    end
+
+    def send_to_socket(message)
+      self.class.logger.debug {"Statsd: #{message}"} if self.class.logger
+      socket.send(message, 0, @host, @port)
+    end
+
+    def socket; @socket ||= UDPSocket.new end
   end
 end 
 
