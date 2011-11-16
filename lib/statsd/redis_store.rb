@@ -16,28 +16,33 @@ module Statsd
       end
     end
 
+    def self.aggregate(retention)
+      main_interval = retentions[0].split(":")[0].to_i
+      interval = retention.split(":")[0].to_i
+      keys = self.redis.smembers("needsAggregated:#{interval}")
+      keys.each do |key|
+        aggregation = case key
+                      when /min/ then "min"
+                      when /max/ then "max"
+                      when /mean|upper_/ then "mean"
+                      else "sum"
+                      end
+        RedisTimeSeries.new(prefix = "#{key}", timestep = main_interval, self.redis).aggregate(interval, aggregation)
+        self.redis.srem("needsAggregated:#{interval}", key)
+      end
+    end
+
     def self.store_all_retentions(key, value, redis)
       main_interval = retentions[0].split(":")[0].to_i
       retentions.each_with_index do |retention, index|
         interval = retention.split(":")[0].to_i
-        num_to_save = retention.split(":")[1].to_i
-        expiration = num_to_save * interval
-        
         if index == 0
           RedisTimeSeries.new(prefix = "#{key}", timestep = interval, redis).add(value.to_s)
         else
-          aggregation = case key
-                        when /min/ then "min"
-                        when /max/ then "max"
-                        when /mean|upper_/ then "mean"
-                        else "sum"
-                        end
-          RedisTimeSeries.new(prefix = "#{key}", timestep = main_interval, redis).aggregate(interval, aggregation)
+          self.redis.sadd("needsAggregated:#{interval}", key)
         end
       end
-      
     end
-
 
     def self.flush_stats(counters, timers)
       print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to Redis and disktore\n"

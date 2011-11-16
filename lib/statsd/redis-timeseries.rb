@@ -24,7 +24,6 @@ class RedisTimeSeries
     @prefix = prefix
     @timestep = timestep
     @redis ||= redis
-    @redis.sadd "datapoints", prefix
   end
 
   def cleanup(retentions)
@@ -37,7 +36,6 @@ class RedisTimeSeries
         Diskstore.truncate("#{@prefix}#{suffix}",  "#{Time.now.to_i - history}") 
       end
     end
-
   end
 
   def normalize_time(t, step=@timestep)
@@ -69,14 +67,15 @@ class RedisTimeSeries
 
   def add(data, origin_time=nil)
     now= Time.now.to_i
+    @redis.sadd "datapoints", @prefix
     @redis.zadd(@prefix, now, compute_value_for_key(data.to_s, now))
   end
 
   def aggregate(history, aggregation = 'mean')
     @redis.sadd "aggregations", history.to_s
     aggregation = (aggregation == "sum") ? "array_sum" :  aggregation
-    start_time = normalize_time(Time.now.to_f, history+1)
-    end_time = start_time + history+1
+    end_time = normalize_time(Time.now.to_f, history+1)
+    start_time = end_time - (history+1)
     aggregate_value = fetch_range(start_time, end_time).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
     key_time = normalize_time(end_time, history)
     Diskstore.store("#{@prefix}:#{history}", key_time.to_s, aggregate_value.to_s)
@@ -133,5 +132,4 @@ class RedisTimeSeries
       Diskstore.read("#{@prefix}#{suffix}", begin_time.to_i.to_s, end_time.to_i.to_s)
     end
   end
-
 end

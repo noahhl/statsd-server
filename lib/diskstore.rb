@@ -12,30 +12,9 @@ class Diskstore
     def store(statistic, ts, value)
       filename = calc_filename(statistic)
       newLineWritten=false
-      if File.exists? filename
-        File.open("#{filename}tmp#{ts}", "w") do |tmpfile|
-          File.open(filename, 'r') do |file|
-            while (line = file.gets)
-              if ts == line.split[0]
-                tmpfile.write("#{ts} #{value}\n")
-                newLineWritten=true
-              else
-                tmpfile.write(line)
-              end
-            end
-            file.close
-          end
-          unless newLineWritten
-            tmpfile.write("#{ts} #{value}\n")
-          end
-          tmpfile.close
-        end
-        FileUtils.mv("#{filename}tmp#{ts}", filename) rescue nil 
-      else
-        File.open(filename, 'w') do |file|
-          file.write("#{ts} #{value}\n")
-          file.close
-        end
+      File.open(filename, 'a+') do |file|
+        file.write("#{ts} #{value}\n")
+        file.close
       end
     end
 

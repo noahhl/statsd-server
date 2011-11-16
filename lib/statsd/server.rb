@@ -119,13 +119,20 @@ module Statsd
           end
 
           #Clean up redis zsets
-          EventMachine::add_periodic_timer(config['flush_interval'] * 100) do
             if options[:redis]
-              EM.defer {Statsd::RedisStore.cleanup }
+              EventMachine::add_periodic_timer(config['flush_interval'] * 100) do
+                EM.defer {Statsd::RedisStore.cleanup }
+              end
+              Statsd::RedisStore.retentions.each_with_index do |retention, index|
+                unless index.zero?
+                  EventMachine::add_periodic_timer(retention.split(":")[0].to_i) do
+                    EM.defer {Statsd::RedisStore.aggregate(retention)}
+                  end
+                end
+              end
             end
-          end
-        end
 
+        end
       end
     end
   end 
