@@ -68,6 +68,8 @@ class Diskstore
         tmpfile.close
       end
       FileUtils.mv("#{filename}tmp#{since}", filename) rescue nil
+    rescue
+      nil
     end
 
   end
