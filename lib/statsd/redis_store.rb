@@ -17,6 +17,7 @@ module Statsd
     end
 
     def self.aggregate(retention)
+      puts "Doing aggregation for #{retention}"
       main_interval = retentions[0].split(":")[0].to_i
       interval = retention.split(":")[0].to_i
       keys = self.redis.smembers("needsAggregated:#{interval}")
