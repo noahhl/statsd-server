@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'redis'
 require 'base64'
-require 'coalmine'
+require 'diskstore'
 
 class Array 
   
@@ -21,10 +21,10 @@ end
 class RedisTimeSeries
 
   def initialize(prefix, timestep, redis)
-      @prefix = prefix
-      @timestep = timestep
-      @redis = redis
-      @redis.sadd "datapoints", prefix
+    @prefix = prefix
+    @timestep = timestep
+    @redis ||= redis
+    @redis.sadd "datapoints", prefix
   end
 
   def cleanup(retentions)
@@ -34,78 +34,77 @@ class RedisTimeSeries
       if suffix == ""
         @redis.zremrangebyscore "#{@prefix}#{suffix}", 0, Time.now.to_i - history
       else
-        Coalmine::Diskstore.truncate("#{@prefix}#{suffix} #{Time.now.to_i - history}") rescue nil
+        Diskstore.truncate("#{@prefix}#{suffix}",  "#{Time.now.to_i - history}") 
       end
     end
 
   end
 
   def normalize_time(t, step=@timestep)
-      t = t.to_i
-      t - (t % step)
+    t = t.to_i
+    t - (t % step)
   end
 
   def tsencode(data)
-      if data.index("\x00") or data.index("\x01")
-          "E#{Base64.encode64(data)}"
-      else
-          "R#{data}"
-      end
+    if data.index("\x00") or data.index("\x01")
+        "E#{Base64.encode64(data)}"
+    else
+        "R#{data}"
+    end
   end
 
   def tsdecode(data)
-      if data[0..0] == 'E'
-          Base64.decode64(data[1..-1])
-      else
-          data[1..-1]
-      end
+    if data[0..0] == 'E'
+        Base64.decode64(data[1..-1])
+    else
+        data[1..-1]
+    end
   end
 
   def compute_value_for_key(data, now)
-      data = tsencode(data)
-      value = "#{now}\x01#{data}"
-      return value
+    data = tsencode(data)
+    value = "#{now}\x01#{data}"
+    return value
   end
 
   def add(data, origin_time=nil)
-      now= Time.now.to_i
-      @redis.zadd(@prefix, now, compute_value_for_key(data.to_s, now))
+    now= Time.now.to_i
+    @redis.zadd(@prefix, now, compute_value_for_key(data.to_s, now))
   end
 
   def aggregate(history, aggregation = 'mean')
-      @redis.sadd "aggregations", history.to_s
-      aggregation = (aggregation == "sum") ? "array_sum" :  aggregation
-      start_time = normalize_time(Time.now.to_f, history+1)
-      end_time = start_time + history+1
-      aggregate_value = fetch_range(start_time, end_time).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
-      key_time = normalize_time(end_time, history)
-      @redis.zremrangebyscore("#{@prefix}:#{history}", key_time - 1, key_time + 1)
-      Coalmine::Diskstore.store("#{@prefix}:#{history} #{key_time} #{compute_value_for_key(aggregate_value.to_s, key_time)}") rescue nil
+    @redis.sadd "aggregations", history.to_s
+    aggregation = (aggregation == "sum") ? "array_sum" :  aggregation
+    start_time = normalize_time(Time.now.to_f, history+1)
+    end_time = start_time + history+1
+    aggregate_value = fetch_range(start_time, end_time).collect{|d| d[:data].to_f}.method(aggregation).call rescue nil
+    key_time = normalize_time(end_time, history)
+    Diskstore.store("#{@prefix}:#{history}", key_time.to_s, aggregate_value.to_s)
   end
 
   def decode_record(r)
-      res = {}
-      s = r.split("\x01")
-      res[:time] = s[0].to_f
-      res[:data] = tsdecode(s[1]).to_f
-      return res
+    res = {}
+    s = r.split("\x01")
+    res[:time] = s[0].to_f
+    res[:data] = tsdecode(s[1]).to_f
+    return res
   end
 
   def seek(time)
-      @aggregations ||= [""] + @redis.smembers("aggregations").collect{|a| ":#{a}"}
-      start_time = time - @timestep/2
-      end_time = time + @timestep/2
-      keys = []
-      @aggregations.each do |aggregation|
-        if keys.empty?
-          if aggregation == ""
-            keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", begin_time, end_time
-          else
-              Coalmine::Diskstore.read("#{@prefix}#{suffix} #{begin_time.to_i} #{end_time.to_i}").collect{|k| k.split(":")[1] rescue nil}.compact
-          end
+    @aggregations ||= [""] + @redis.smembers("aggregations").collect{|a| ":#{a}"}
+    start_time = time - @timestep/2
+    end_time = time + @timestep/2
+    keys = []
+    @aggregations.each do |aggregation|
+      if keys.empty?
+        if aggregation == ""
+          keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", begin_time, end_time
+        else
+            Diskstore.read("#{@prefix}#{suffix}", begin_time.to_i.to_s, end_time.to_i.to_s)
         end
       end
-      keys.collect{|k| decode_record(k)}
+    end
+    keys.collect{|k| decode_record(k)}
   end
 
   def fetch_range(begin_time,end_time, strict=false)
@@ -116,7 +115,7 @@ class RedisTimeSeries
         if aggregation == ""
           keys = @redis.zrangebyscore "#{@prefix}#{aggregation}", begin_time, end_time
         else
-            Coalmine::Diskstore.read("#{@prefix}#{suffix} #{begin_time.to_i} #{end_time.to_i}").collect{|k| k.split(":")[1] rescue nil}.compact
+          Diskstore.read("#{@prefix}#{suffix}", begin_time.to_i.to_s, end_time.to_i.to_s)
         end
       end
     end
@@ -131,12 +130,8 @@ class RedisTimeSeries
       keys = @redis.zrangebyscore "#{@prefix}#{suffix}", begin_time, end_time
       keys.collect{|k| decode_record(k)}
     else
-      Coalmine::Diskstore.read("#{@prefix}#{suffix} #{begin_time.to_i} #{end_time.to_i}").collect{|k| k.split(":")[1] rescue nil}.compact.collect{|k| decode_record(k) rescue nil}.compact
+      Diskstore.read("#{@prefix}#{suffix}", begin_time.to_i.to_s, end_time.to_i.to_s)
     end
   end
 
 end
-
-
-
-

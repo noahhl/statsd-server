@@ -116,7 +116,6 @@ module Statsd
                 conn.flush_stats
               end     
             end
-          
           end
 
           #Clean up redis zsets
@@ -125,14 +124,9 @@ module Statsd
               EM.defer {Statsd::RedisStore.cleanup }
             end
           end
-
         end
-      
+
       end
     end
   end 
 end
-
-
-
-

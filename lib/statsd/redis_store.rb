@@ -3,7 +3,6 @@ require 'redis'
 require 'statsd/redis-timeseries'
 
 module Statsd
-
   class RedisStore
     class << self
       attr_accessor :redis, :host, :port, :flush_interval, :retentions
@@ -41,18 +40,15 @@ module Statsd
 
 
     def self.flush_stats(counters, timers)
-     
-      print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to Redis\n"
+      print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to Redis and disktore\n"
       self.redis ||= Redis.new(:host => host, :port => port)
       num_stats = 0
-      
-      
       timestep = flush_interval 
       
       #store counters
       counters.each_pair do |key, value|
-          store_all_retentions("counters:#{key}", value, self.redis)
-          num_stats += 1
+        store_all_retentions("counters:#{key}", value, self.redis)
+        num_stats += 1
       end
    
       timers.each_pair do |key, values|
@@ -78,7 +74,6 @@ module Statsd
           end
 
           # Flush Values to Store
-          
           store_all_retentions("timers:#{key}:mean", mean.to_s, self.redis)
           store_all_retentions("timers:#{key}:max", max.to_s, self.redis)
           store_all_retentions("timers:#{key}:min", min.to_s, self.redis)
@@ -88,10 +83,6 @@ module Statsd
           num_stats += 1
         end
       end
-
-
-
     end
-
   end
 end

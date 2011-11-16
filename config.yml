@@ -22,7 +22,7 @@ aws_access_key_secret: SDLKFJSLDKFJ
 redis_host: localhost 
 redis_port: 6379
 # Uses the same format as graphite's schema retentions, accomplished by
-# expiring keys randomly based on time intervals
+# storing aggregated keys at each retention level. 
 # "10:2160,60:10080,600:262974" translates to:
 # 6 hours of 10 second data (what we consider "near-realtime")
 # 1 week of 1 minute data
