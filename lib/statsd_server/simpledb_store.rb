@@ -1,6 +1,6 @@
 require 'simpledb-timeseries'
 
-module Statsd
+module StatsdServer
 
   class SimpleDBStore 
     class << self

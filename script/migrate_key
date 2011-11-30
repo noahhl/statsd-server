@@ -1,0 +1,67 @@
+#!/usr/bin/ruby
+require 'rubygems'
+require 'redis'
+require 'digest'
+require 'fileutils'
+require 'optparse'
+require 'yaml'
+require 'erb'
+
+ORIGINAL_ARGV = ARGV.dup
+options = {} 
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: migrate_key [options]"
+
+  opts.separator ""
+  opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
+   options[:config] = x 
+  end
+end
+
+parser.parse!
+oldname = ARGV[0]
+newname = ARGV[1]
+
+config = YAML::load(ERB.new(IO.read(options[:config])).result)
+ENV["coalmine_data_path"] = config['coalmine_data_path']
+@redis = Redis.new({:host => config["redis_host"], :port => config["redis_port"]})
+
+def calc_filename(statistic)
+  file_hash = Digest::MD5.hexdigest(statistic)
+  FileUtils.mkdir_p File.join(ENV["coalmine_data_path"], file_hash[0,2], file_hash[2,2])
+  File.join(ENV["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
+end
+
+def move_key(oldname, newname, config, redis)
+  config['redis_retention'].split(',').each_with_index do |retention, index|
+    if index.zero?
+      redis.rename oldname, newname
+      redis.srem "datapoints", oldname
+      redis.sadd "datapoints", newname
+    else
+      suffix = retention.split(":")[0]
+      FileUtils.mv(calc_filename("#{oldname}:#{suffix}"), calc_filename("#{newname}:#{suffix}"))
+    end
+  end
+end
+
+
+move_key(oldname, newname, config, @redis)
+
+keys.each do |key|
+  newname = key.gsub("BCX.", "BCX.Usage.")
+  begin
+    move_key(key, newname, config, @redis)
+  rescue Exception => e
+    puts e
+  end
+end
+
+resque_keys.each do |key|
+  newname = key.gsub("BCX.", "BCX.Performance.")
+  begin
+    move_key(key, newname, config, @redis)
+  rescue Exception => e
+    puts e
+  end
+end

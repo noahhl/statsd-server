@@ -1,7 +1,7 @@
 require 'benchmark'
 gem 'eventmachine'
 require 'eventmachine'
-module Statsd
+module StatsdServer
   class Graphite < EM::Connection
     attr_accessor :counters, :timers, :flush_interval
     

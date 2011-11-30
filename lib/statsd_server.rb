@@ -1,6 +1,6 @@
 require 'socket'
 # encoding: utf-8
-module Statsd
+module StatsdServer
 
   #
   # Statsd::Client by Rein Henrichs -- github.com/reinh/statsd

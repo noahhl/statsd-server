@@ -1,9 +1,9 @@
 # -*- encoding: utf-8 -*-
 lib = File.expand_path('../lib/', __FILE__)
 $:.unshift lib unless $:.include?(lib)
-require File.expand_path("../lib/statsd/server", __FILE__) # for version info
+require File.expand_path("../lib/statsd_server/server", __FILE__) # for version info
 Gem::Specification.new do |s|
-  s.name        = "statsd"
+  s.name        = "statsd-server"
   s.version     = "0.6.4"
   s.platform    = Gem::Platform::RUBY
   s.authors     = ['Andrew Coldham', 'Ben VandenBos']

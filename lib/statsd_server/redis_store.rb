@@ -1,8 +1,8 @@
 require 'benchmark'
 require 'redis'
-require 'statsd/redis-timeseries'
+require 'statsd_server/redis-timeseries'
 
-module Statsd
+module StatsdServer
   class RedisStore
     class << self
       attr_accessor :redis, :host, :port, :flush_interval, :retentions

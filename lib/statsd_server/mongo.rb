@@ -1,6 +1,6 @@
 require 'benchmark'
 require 'mongo'
-module Statsd
+module StatsdServer
   class Mongo
     class << self
       attr_accessor :database, :hostname, :retentions, :flush_interval
