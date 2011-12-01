@@ -11,7 +11,6 @@ class Diskstore
 
     def store(statistic, ts, value)
       filename = calc_filename(statistic)
-      newLineWritten=false
       File.open(filename, 'a+') do |file|
         file.write("#{ts} #{value}\n")
         file.close

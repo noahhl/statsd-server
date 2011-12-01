@@ -49,7 +49,6 @@ module StatsdServer
       print "#{Time.now} Flushing #{counters.count} counters and #{timers.count} timers to Redis and disktore\n"
       self.redis ||= Redis.new(:host => host, :port => port)
       num_stats = 0
-      timestep = flush_interval 
       
       #store counters
       counters.each_pair do |key, value|
