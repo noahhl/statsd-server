@@ -34,18 +34,20 @@ class Diskstore
 
     def truncate(statistic, since)
       filename = calc_filename(statistic)
-      File.open("#{filename}tmp#{since}", "w") do |tmpfile|
-        File.open(filename, 'r') do |file|
-          while (line = file.gets)
-            if(line.split[0] >= since rescue true)
-              tmpfile.write(line)
+      unless File.exists? "#{filename}tmp"  
+        File.open("#{filename}tmp", "w") do |tmpfile|
+          File.open(filename, 'r') do |file|
+            while (line = file.gets)
+              if(line.split[0] >= since rescue true)
+                tmpfile.write(line)
+              end
             end
+            file.close
           end
-          file.close
+          tmpfile.close
         end
-        tmpfile.close
+        FileUtils.mv("#{filename}tmp", filename) rescue nil
       end
-      FileUtils.mv("#{filename}tmp#{since}", filename) rescue nil
     rescue
       nil
     end
