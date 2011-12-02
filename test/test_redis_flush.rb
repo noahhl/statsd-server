@@ -66,16 +66,16 @@ class RedisFlushTest < Test::Unit::TestCase
   def test_storing_timer_initially_adds_keys_to_redis
     assert_empty $redis.smembers "datapoints"
     StatsdServer::RedisStore.flush!({}, $timers)
-    assert_equal 5, $redis.scard("datapoints")
-    assert_equal ["timers:test_timer:mean"], $redis.keys("*test_timer:mean*")
+    assert_equal 6, $redis.scard("datapoints")
+    assert_equal ["timers:test_timer:mean"], $redis.keys("*test_timer:mean")
   end
 
   def test_updating_timer_adds_datapoints_but_not_keys
     StatsdServer::RedisStore.flush!({}, $timers)
-    assert_equal 5, $redis.scard("datapoints")
+    assert_equal 6, $redis.scard("datapoints")
     Timecop.freeze(Time.now + 30) do 
       StatsdServer::RedisStore.flush!({}, $timers)
-      assert_equal 5, $redis.scard("datapoints")
+      assert_equal 6, $redis.scard("datapoints")
       assert_equal 2, $redis.zcard("timers:test_timer:mean")
     end
   end

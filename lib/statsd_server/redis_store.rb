@@ -30,31 +30,13 @@ module StatsdServer
         timers.each_pair do |key, values|
           if (values.length > 0) 
             pct_threshold = 90
-            values.sort!
-            count = values.count
-            min = values.first
-            max = values.last
-
-            mean = min
-            max_at_threshold = max
-
-            if (count > 1)
-              # strip off the top 100-threshold
-              threshold_index = (((100 - pct_threshold) / 100.0) * count).round
-              values = values[0..-threshold_index]
-              max_at_threshold = values.last
-              # average the remaining timings
-              sum = values.inject( 0 ) { |s,x| s+x }
-              mean = sum / values.count
-            end
-
             # Flush Values to Store
-            store_all_retentions "timers:#{key}:mean", mean.to_s
-            store_all_retentions "timers:#{key}:max", max.to_s
-            store_all_retentions "timers:#{key}:min", min.to_s
-            store_all_retentions "timers:#{key}:upper_#{pct_threshold}", max_at_threshold.to_s
-            store_all_retentions "timers:#{key}:count", count.to_s
-            
+            store_all_retentions "timers:#{key}:mean", values.mean.to_s
+            store_all_retentions "timers:#{key}:max", values.max.to_s
+            store_all_retentions "timers:#{key}:min", values.min.to_s
+            store_all_retentions "timers:#{key}:upper_#{pct_threshold}", values.send("percentile_#{pct_threshold}").to_s
+            store_all_retentions "timers:#{key}:count", values.count.to_s
+            store_all_retentions "timers:#{key}:mean_squared", values.mean_squared.to_s
             num_stats += 1
           end
         end

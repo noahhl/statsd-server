@@ -14,6 +14,7 @@ module StatsdServer
             aggregation = case key
                           when /min/ then "min"
                           when /max/ then "max"
+                          when /mean_squared/ then "sum"
                           when /mean|upper_/ then "mean"
                           else "sum"
                           end
@@ -50,14 +51,14 @@ module StatsdServer
         values_from_redis do |values|
           return unless values.is_a? Array
           if EventMachine.reactor_running?
-            values.method(@aggregation).call.tap(&f)
+            values.send(@aggregation).tap(&f)
           else
-            return values.method(@aggregation).call.tap(&f)
+            return values.send(@aggregation).tap(&f)
           end
         end
       else
         return unless values.is_a? Array
-        return values.method(@aggregation).call
+        return values.send(@aggregation)
       end
     end
 

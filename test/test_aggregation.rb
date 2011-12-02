@@ -59,11 +59,19 @@ class AggregationTest < Test::Unit::TestCase
   end
 
   def test_percentile_aggregation
-    skip "not implemented yet"
+    values = (1..20).to_a
+    assert_equal 19, StatsdServer::Aggregation.new("", 10, "percentile_90").calculate_aggregation(values)
+    assert_equal 11, StatsdServer::Aggregation.new("", 10, "percentile_50").calculate_aggregation(values)
   end
   
+  def test_mean_squared_aggregation
+    values = (1..20).to_a
+    assert_equal 665, StatsdServer::Aggregation.new("", 10, "mean_squared").calculate_aggregation(values)
+  end
+
   def test_standard_deviation
-    skip "not implemented yet"
+    values = (1..20).to_a
+    assert_equal 5.91608, StatsdServer::Aggregation.new("", 10, "standard_dev").calculate_aggregation(values).round(5)
   end
 
   def test_aggregating_pending_aggregates_and_clears_all_pending_metrics
