@@ -37,7 +37,6 @@ module StatsdServer
       begin
         key_time = normalize_time(@now, @interval)
         calculate_aggregation do |aggregation|
-          puts aggregation 
           StatsdServer::Diskstore.enqueue "#{@key}:#{@interval}", key_time.to_s, aggregation.to_s
           $redis.srem("needsAggregated:#{@interval}", @key)
         end

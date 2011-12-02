@@ -1,16 +1,34 @@
 require 'rubygems'
 require 'test/unit'
+require 'mocha'
 require 'statsd_server'
 require 'statsd_server/server'
 
 class DiskQueueTest < Test::Unit::TestCase
-
-  def test_writer_gets_job_from_queue_and_sends_to_diskstore
-    assert false
+  
+  def setup
+    options = {:config => "test/config.yml"}
+  #  ENV["silent"] = "true"
+    $config = YAML::load(ERB.new(IO.read(options[:config])).result)
+    $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
+    $redis = RedisCustom.new({:host => $config["redis_host"], :port => $config["redis_port"]})
   end
 
-  def test_writer_sleeps_when_there_are_no_jobs_for_it
-    assert false
+  def teardown
+    $redis.keys.each{|k| $redis.del k}
+    $counters = {}
+    $timers = {}
+  end
+
+  def test_queue_worker_sends_job_to_diskstore
+    StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
+    StatsdServer::RedisStore.flush!($counters, {})
+    StatsdServer::Aggregation.aggregate_pending!(60)
+    assert_equal 1, $redis.llen("diskstoreQueue")
+    StatsdServer::Diskstore.expects(:store!)
+    $redis.rpop("diskstoreQueue") do |job|
+      StatsdServer::Queue.perform(job)
+    end
   end
 
 end

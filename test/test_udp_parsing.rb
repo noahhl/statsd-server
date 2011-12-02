@@ -26,8 +26,4 @@ class UDPParsingTest < Test::Unit::TestCase
     assert_equal 2, $timers["test_timer"].length
   end
 
-  def test_requesting_info_returns_details_about_the_server
-    skip "not implemented yet"
-  end
-
 end

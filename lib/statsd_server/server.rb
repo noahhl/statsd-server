@@ -6,6 +6,7 @@ require 'benchmark'
 require 'em-redis'
 require 'base64'
 require 'statsd_server/udp'
+require 'statsd_server/queue'
 require 'statsd_server/aggregation'
 require 'statsd_server/diskstore'
 require 'statsd_server/redis_store'
@@ -19,6 +20,7 @@ module StatsdServer
     $timers = {}
 
     def post_init
+      @started = Time.now
       $redis = EM::Protocols::Redis.connect $config["redis_host"], $config["redis_port"]
       $redis.errback do |code|
         StatsdServer.logger "Error code: #{code}"
@@ -36,7 +38,14 @@ module StatsdServer
 
     def receive_data(msg)    
       msg.split("\n").each do |row|
-        StatsdServer::UDP.parse_incoming_message(row)
+        if row == "INFO"
+          send_data <<-info
+          Up since: #{@started}
+          Threadpool size: #{EM.threadpool_size}
+          info
+        else
+          StatsdServer::UDP.parse_incoming_message(row)
+        end
       end
     end    
 
@@ -48,16 +57,15 @@ module StatsdServer
 
         # Start the server
         EventMachine::run do
+          EventMachine.threadpool_size = 50
           #Bind to the socket and gather the incoming datapoints
           EventMachine::open_datagram_socket($config['bind'], $config['port'], StatsdServer::Server)  
-          
+
           # On the flush interval, do the primary aggregation and flush it to
           # a redis zset
           EventMachine::add_periodic_timer($config['flush_interval']) do
             counters,timers = StatsdServer::Server.get_and_clear_stats!
-            EM.defer do 
-              StatsdServer::RedisStore.flush!(counters,timers) 
-            end
+            StatsdServer::RedisStore.flush!(counters,timers) 
           end
 
           # At every retention that's longer than the flush interval, 
@@ -80,6 +88,11 @@ module StatsdServer
               StatsdServer::Diskstore.cleanup!
             end
           end
+          
+          # Start a worker to write aggregated datapoints to disk
+         # $queue_worker = Thread.new do
+         #   StatsdServer::Queue.work!
+         # end
 
         end
       end

@@ -48,6 +48,9 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
+    @worker = fork do 
+      StatsdServer::Queue.work!(options)
+    end
     StatsdServer::Server::Daemon.new.run(options)
   end
 rescue Exception => e

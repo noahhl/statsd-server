@@ -7,14 +7,19 @@ require 'statsd_server'
 require 'statsd_server/server'
 
 class RedisCustom < Redis
-  alias :old_smembers :smembers
+  alias :normal_smembers :smembers
   def smembers(key, &f)
-    old_smembers(key).tap(&f)
+    normal_smembers(key).tap(&f)
   end
-  alias :old_zrangebyscore :zrangebyscore
+  alias :normal_zrangebyscore :zrangebyscore
   def zrangebyscore(key, low, high, &f)
-    old_zrangebyscore(key, low, high).tap(&f)
+    normal_zrangebyscore(key, low, high).tap(&f)
   end
+  alias :normal_rpop :rpop
+  def rpop(key, &f)
+    normal_rpop(key).tap(&f)
+  end
+
 end
 
 class AggregationTest < Test::Unit::TestCase

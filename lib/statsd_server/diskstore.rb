@@ -25,10 +25,9 @@ module StatsdServer
       end
 
       def enqueue(statistic, ts, value)
-        puts "Queueing value: #{statistic} #{ts} #{value}" if $options[:debug]
         filename = calc_filename(statistic)
         value = "#{ts} #{value}"
-        $redis.lpush "diskstoreQueue", "#{filename}\x0#{value}"
+        StatsdServer::Queue.enqueue "#{filename}\x0#{value}"
       end
 
       def store!(filename, value)
