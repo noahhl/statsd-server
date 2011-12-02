@@ -43,7 +43,7 @@ class DiskstoreTest < Test::Unit::TestCase
       StatsdServer::Diskstore.store!(StatsdServer::Diskstore.calc_filename(@statistic), "#{now + i} #{i}")
     end
     assert_equal 50, StatsdServer::Diskstore.read(@statistic, now.to_s, (now + 50).to_s).length
-    StatsdServer::Diskstore.truncate!(@statistic, (now+25).to_s)
+    StatsdServer::Diskstore.truncate!(StatsdServer::Diskstore.calc_filename(@statistic), (now+25).to_s)
     assert_equal 26, StatsdServer::Diskstore.read(@statistic, now.to_s, (now + 50).to_s).length
   end
 

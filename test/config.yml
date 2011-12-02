@@ -9,7 +9,7 @@ flush_interval: 10
 cleanup_interval: 30
 
 # Redis
-redis_host: localhost 
+redis_host: 127.0.0.1 
 redis_port: 6379
 # Uses the same format as graphite's schema retentions, accomplished by
 # storing aggregated keys at each retention level. 
