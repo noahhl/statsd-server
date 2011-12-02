@@ -47,23 +47,6 @@ module StatsdServer
     class Daemon
       def run(options)
         config = YAML::load(ERB.new(IO.read(options[:config])).result)
-
-        if options[:mongo]
-          require 'statsd_server/mongo'
-          # Setup retention store
-          db = ::Mongo::Connection.new(config['mongo_host']).db(config['mongo_database'])
-          config['retentions'].each do |retention|
-            collection_name = retention['name']
-            unless db.collection_names.include?(collection_name)
-              db.create_collection(collection_name, :capped => retention['capped'], :size => retention['cap_bytes']) 
-            end
-            db.collection(collection_name).ensure_index([['ts', ::Mongo::ASCENDING]])
-          end        
-          StatsdServer::Mongo.hostname = config['mongo_host']
-          StatsdServer::Mongo.database = config['mongo_database']
-          StatsdServer::Mongo.retentions = config['retentions']
-          StatsdServer::Mongo.flush_interval = config['flush_interval']
-        end
       
         if options[:graphite]
           require 'statsd_server/graphite' 
@@ -96,9 +79,6 @@ module StatsdServer
             counters,timers = StatsdServer::Server.get_and_clear_stats!
 
              # Flush Adapters
-            if options[:mongo]
-              EM.defer { StatsdServer::Mongo.flush_stats(counters,timers) } 
-            end
 
             if options[:redis]
               EM.defer { StatsdServer::RedisStore.flush_stats(counters,timers) } 
