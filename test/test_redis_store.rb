@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'test/unit'
 require 'redis'
-require 'statsd/server'
+require 'statsd_server/server'
 require 'socket'
 require 'fileutils'
 
