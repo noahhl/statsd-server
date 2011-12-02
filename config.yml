@@ -9,11 +9,6 @@ flush_interval: 10
 graphite_host: localhost
 graphite_port: 2003
 
-#SimpleDB
-key_size: 2500
-aws_access_key: SDJFSKLFJ
-aws_access_key_secret: SDLKFJSLDKFJ
-
 # Redis
 redis_host: localhost 
 redis_port: 6379

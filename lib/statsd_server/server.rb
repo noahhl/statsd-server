@@ -61,14 +61,6 @@ module StatsdServer
           StatsdServer::RedisStore.retentions = config['redis_retention'].split(',')
         end
 
-        if options[:simpledb]
-          require 'statsd_server/simpledb_store'
-          Statsd::SimpleDBStore.timestep = config["key_size"].to_i
-          ENV['AMAZON_ACCESS_KEY_ID'] = config["aws_access_key"] if ENV["AMAZON_ACCESS_KEY_ID"].nil?
-          ENV['AMAZON_SECRET_ACCESS_KEY'] = config["aws_access_key_secret"] if ENV["AMAZON_SECRET_ACCESS_KEY"].nil?
-        end
-
-
         # Start the server
         EventMachine::run do
           EventMachine::open_datagram_socket(config['bind'], config['port'], StatsdServer::Server)  
@@ -82,10 +74,6 @@ module StatsdServer
 
             if options[:redis]
               EM.defer { StatsdServer::RedisStore.flush_stats(counters,timers) } 
-            end
-
-            if options[:simpledb]
-              EM.defer { StatsdServer::SimpleDBStore.flush_stats(counters,timers) rescue nil } 
             end
 
             if options[:graphite]

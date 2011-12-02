@@ -28,10 +28,6 @@ begin
      options[:redis] = true
     end
     
-    opts.on("-s", "--simpledb", "Flush stats to SimpleDB") do 
-     options[:simpledb] = true
-    end
-
     opts.on("-v", "--version", "Show version") do
       puts Version
       exit
