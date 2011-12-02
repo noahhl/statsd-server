@@ -4,10 +4,7 @@ port: 8125
 
 # Flush interval should be your finest retention in seconds
 flush_interval: 10
-
-# Graphite
-graphite_host: localhost
-graphite_port: 2003
+cleanup_interval: 30
 
 # Redis
 redis_host: localhost 
@@ -18,6 +15,6 @@ redis_port: 6379
 # 6 hours of 10 second data (what we consider "near-realtime")
 # 1 week of 1 minute data
 # 5 years of 10 minute data
-redis_retention: "10:2160,60:10080,600:262974"
+retention: "10:2160,60:10080,600:262974"
 coalmine_data_path: "/u/statsd/"
 

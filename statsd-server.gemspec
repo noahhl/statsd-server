@@ -16,7 +16,7 @@ Gem::Specification.new do |s|
 
   s.add_dependency "eventmachine",  ">= 1.0.0.beta.4"
   s.add_dependency "erubis",        ">= 2.6.6"
-  s.add_dependency "redis",         ">= 2.0.0"
+  s.add_dependency "em-redis",      "~> 0.3.0"
 
   s.files        = `git ls-files`.split("\n")
   s.executables  = `git ls-files`.split("\n").map{|f| f =~ /^bin\/(.*)/ ? $1 : nil}.compact

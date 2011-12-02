@@ -5,8 +5,8 @@ class Diskstore
 
     def calc_filename(statistic)
       file_hash = Digest::MD5.hexdigest(statistic)
-      FileUtils.mkdir_p File.join(ENV["coalmine_data_path"], file_hash[0,2], file_hash[2,2])
-      File.join(ENV["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
+      FileUtils.mkdir_p File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2])
+      File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
     end
 
     def store(statistic, ts, value)
