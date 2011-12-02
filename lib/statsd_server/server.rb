@@ -5,16 +5,16 @@ require 'erb'
 require 'benchmark'
 require 'em-redis'
 require 'base64'
+require 'statsd_server/udp'
 require 'statsd_server/aggregation'
 require 'statsd_server/diskstore'
 require 'statsd_server/redis_store'
-require 'statsd_server/redis-timeseries'
 
 module StatsdServer
   module Server #< EM::Connection  
     
-    COUNTERS = {}
-    TIMERS = {}
+    $counters = {}
+    $timers = {}
 
     def post_init
       $redis = EM::Protocols::Redis.connect $config["redis_host"], $config["redis_port"]
@@ -25,32 +25,16 @@ module StatsdServer
     end
 
     def self.get_and_clear_stats!
-      counters = COUNTERS.dup
-      timers = TIMERS.dup
-      COUNTERS.clear
-      TIMERS.clear
+      counters = $counters.dup
+      timers = $timers.dup
+      $counters.clear
+      $timers.clear
       [counters,timers]
     end
 
     def receive_data(msg)    
       msg.split("\n").each do |row|
-        StatsdServer.logger "received #{row}" if OPTIONS[:debug]
-        bits = row.split(':')
-        key = bits.shift.gsub(/\s+/, '_').gsub(/\//, '-').gsub(/[^a-zA-Z_\-0-9\.]/, '')
-        bits.each do |record|
-          sample_rate = 1
-          fields = record.split("|")    
-          if (fields[1].strip == "ms") 
-            TIMERS[key] ||= []
-            TIMERS[key].push(fields[0].to_f)
-          else
-            if (fields[2] && fields[2].match(/^@([\d\.]+)/)) 
-              sample_rate = fields[2].match(/^@([\d\.]+)/)[1]
-            end
-            COUNTERS[key] ||= 0
-            COUNTERS[key] += (fields[0].to_f || 1) * (1.0 / sample_rate.to_f)
-          end
-        end
+        StatsdServer::UDP.parse_incoming_message(row)
       end
     end    
 

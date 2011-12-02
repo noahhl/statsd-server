@@ -3,3 +3,12 @@ Need to perf test
 Need to test test
 Need to clean up aggregations to a consistent set
 Need standard dev / sum of squares aggregation
+
+INFO command
+
+5 "loops":
+1) Receive datapoints, queue them up
+2) Write datapoints to redis (intermittent timer)
+3) Aggregate datapoints, write them to a redis queue (intermittent timers)
+4) Write calculated/aggregated datapoints to a file
+5) Truncate file and redis based metrics

@@ -60,16 +60,13 @@ module StatsdServer
         end_time = normalize_time(@now, @interval+1)
         start_time = end_time - (@interval+1)
         $redis.zrangebyscore(@key, start_time, end_time) do |keys|
-          keys.map{|key| decode_record(key)[:data] rescue nil}.compact
+          keys.map{|key| decode_record(key) rescue nil}.compact
         end
       end
       
       def decode_record(key)
-        res = {}
         s = key.split("\x01")
-        res[:time] = s[0].to_f
-        res[:data] = tsdecode(s[1]).to_f
-        return res
+        tsdecode(s[1]).to_f
       end
       
       def tsdecode(data)
