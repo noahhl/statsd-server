@@ -7,7 +7,7 @@ module StatsdServer
     # need to be aggregated from the appropriate redis set.
     # Aggregate them across the interval, and store them to disk
     def self.aggregate_pending!(interval)
-      StatsdServer.logger "Performing aggregation for #{interval} interval"
+      StatsdServer.logger "Starting aggregation for #{interval} interval" if $options[:debug]
       $redis.smembers("needsAggregated:#{interval}") do |keys|
         timing = Benchmark.measure do
           keys.each do |key|
@@ -22,7 +22,7 @@ module StatsdServer
             self.new(key, interval, aggregation).store!
           end
         end
-        StatsdServer.logger "Finished aggregation and writing to disktsore for #{interval} in #{timing.real} seconds"
+        StatsdServer.logger "Finished aggregation and writing to diskstore for #{interval} in #{timing.real} seconds" if $options[:debug]
       end
     end
 

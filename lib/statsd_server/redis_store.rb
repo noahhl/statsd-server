@@ -5,11 +5,11 @@ module StatsdServer
       def cleanup!
         $redis.smembers("datapoints") do |datapoints|
           timing = Benchmark.measure do 
-            StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from redis." 
+            StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from redis." if $options[:debug]
             datapoints.each do |datapoint|
               retention = $config['retention'].find{|r| r[:interval] == $config["flush_interval"]}
               since = Time.now.to_i - (retention[:interval] * retention[:count])
-              StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." #if $options[:debug]
+              StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." if $options[:debug]
               $redis.zremrangebyscore datapoint, 0, since
             end
           end
@@ -19,12 +19,11 @@ module StatsdServer
 
       def flush!(counters, timers)
         StatsdServer.logger "Flushing #{counters.count} counters and #{timers.count} timers to Redis\n"
-        num_stats = 0
         
         #store counters
         counters.each_pair do |key, value|
           store_all_retentions "counters:#{key}", value
-          num_stats += 1
+          $num_stats += 1
         end
      
         timers.each_pair do |key, values|
@@ -37,7 +36,7 @@ module StatsdServer
             store_all_retentions "timers:#{key}:upper_#{pct_threshold}", values.send("percentile_#{pct_threshold}").to_s
             store_all_retentions "timers:#{key}:count", values.count.to_s
             store_all_retentions "timers:#{key}:mean_squared", values.mean_squared.to_s
-            num_stats += 1
+            $num_stats += 1
           end
         end
       end

@@ -18,6 +18,7 @@ module StatsdServer
     
     $counters = {}
     $timers = {}
+    $num_stats = 0
 
     def post_init
       @started = Time.now
@@ -39,10 +40,17 @@ module StatsdServer
     def receive_data(msg)    
       msg.split("\n").each do |row|
         if row == "INFO"
-          send_data <<-info
-          Up since: #{@started}
-          Threadpool size: #{EM.threadpool_size}
-          info
+          $redis.llen("diskstoreQueue") do |queue_size|
+            send_data <<-info
+Up since: #{@started}
+Total statistics since restart: #{$num_stats}
+Statistics pending write to disk: #{queue_size}
+EM threadpool size: #{EM.threadpool_size}
+EM connection count: #{EM.connection_count}
+EM max timers: #{EM.get_max_timers}
+EM heartbeat interval: #{EM.heartbeat_interval}
+            info
+          end
         else
           StatsdServer::UDP.parse_incoming_message(row)
         end

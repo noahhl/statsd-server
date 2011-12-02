@@ -51,7 +51,7 @@ begin
     @worker = fork do 
       StatsdServer::Queue.work!(options)
     end
-    StatsdServer::Server::Daemon.new.run(options)
+    StatsdServer::Server::Daemon.new.run(options.merge({:worker => @worker}))
   end
 rescue Exception => e
   if e.instance_of?(SystemExit)

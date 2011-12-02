@@ -8,7 +8,7 @@ module StatsdServer
       def cleanup!
         $redis.smembers("datapoints") do |datapoints|
           timing = Benchmark.measure do 
-            StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from diskstore.\n" 
+            StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from diskstore.\n"  if $options[:debug]
             datapoints.each do |datapoint|
               retention = $config["retention"].find{|r| r[:interval] != $config["flush_interval"]}
               truncate! "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
