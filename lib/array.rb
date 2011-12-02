@@ -1,6 +1,6 @@
 class Array 
   
-  def array_sum
+  def sum 
    inject( nil ) { |sum,x| sum ? sum+x : x }; 
   end
 

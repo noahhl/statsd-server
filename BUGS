@@ -1,0 +1,5 @@
+Sporadic values can sometimes be "lost" in aggregations
+Need to perf test
+Need to test test
+Need to clean up aggregations to a consistent set
+Need standard dev / sum of squares aggregation

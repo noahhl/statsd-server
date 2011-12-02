@@ -5,7 +5,7 @@ require 'erb'
 require 'benchmark'
 require 'em-redis'
 require 'base64'
-
+require 'statsd_server/aggregation'
 require 'statsd_server/diskstore'
 require 'statsd_server/redis_store'
 require 'statsd_server/redis-timeseries'
@@ -19,9 +19,9 @@ module StatsdServer
     def post_init
       $redis = EM::Protocols::Redis.connect $config["redis_host"], $config["redis_port"]
       $redis.errback do |code|
-        puts "#{Time.now} Error code: #{code}"
+        StatsdServer.logger "Error code: #{code}"
       end
-      puts "#{Time.now} statsd server started!"
+      StatsdServer.logger "statsd server started!"
     end
 
     def self.get_and_clear_stats!
@@ -34,7 +34,7 @@ module StatsdServer
 
     def receive_data(msg)    
       msg.split("\n").each do |row|
-        puts "#{Time.now} got #{row}" if OPTIONS[:debug]
+        StatsdServer.logger "received #{row}" if OPTIONS[:debug]
         bits = row.split(':')
         key = bits.shift.gsub(/\s+/, '_').gsub(/\//, '-').gsub(/[^a-zA-Z_\-0-9\.]/, '')
         bits.each do |record|
@@ -57,8 +57,6 @@ module StatsdServer
     class Daemon
       def run(options)
         $config = YAML::load(ERB.new(IO.read(options[:config])).result)
-
-        StatsdServer::RedisStore.retentions = $config['retention'].split(',')
         $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
 
         # Start the server
@@ -66,8 +64,8 @@ module StatsdServer
           #Bind to the socket and gather the incoming datapoints
           EventMachine::open_datagram_socket($config['bind'], $config['port'], StatsdServer::Server)  
           
-          #On the flush interval, do the primary aggregation and flush it to
-          #a redis zset
+          # On the flush interval, do the primary aggregation and flush it to
+          # a redis zset
           EventMachine::add_periodic_timer($config['flush_interval']) do
             counters,timers = StatsdServer::Server.get_and_clear_stats!
             EM.defer do 
@@ -75,23 +73,24 @@ module StatsdServer
             end
           end
 
-          #At every retention that's longer than the flush interval, 
-          #perform an aggregation and store it to disk
-          StatsdServer::RedisStore.retentions.each do |retention|
-            unless retention.split(":")[0].to_i == $config["flush_interval"] 
-              EventMachine::add_periodic_timer(retention.split(":")[0].to_i) do
+          # At every retention that's longer than the flush interval, 
+          # perform an aggregation and store it to disk
+          $config['retention'].each do |retention|
+            unless retention[:interval] == $config["flush_interval"] 
+              EventMachine::add_periodic_timer(retention[:interval]) do
                 EM.defer do
-                  StatsdServer::RedisStore.aggregate(retention)
+                  StatsdServer::Aggregation.aggregate_pending!(retention[:interval])
                 end
               end
             end
           end
 
-          #Every n flush intervals, clean up those values that are past their
-          #retention limit
+          # On the cleanup interval, clean up those values that are past their
+          # retention limit
           EventMachine::add_periodic_timer($config['cleanup_interval']) do
             EM.defer do 
               StatsdServer::RedisStore.cleanup!
+              StatsdServer::Diskstore.cleanup!
             end
           end
 

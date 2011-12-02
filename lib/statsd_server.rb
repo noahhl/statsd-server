@@ -2,6 +2,10 @@ require 'socket'
 # encoding: utf-8
 module StatsdServer
 
+  def self.logger(message)
+    puts "#{Time.now} #{message}"
+  end
+
   #
   # Statsd::Client by Rein Henrichs -- github.com/reinh/statsd
   # Embedding here for legacy reasons

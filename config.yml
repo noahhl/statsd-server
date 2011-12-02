@@ -4,6 +4,8 @@ port: 8125
 
 # Flush interval should be your finest retention in seconds
 flush_interval: 10
+# Cleanup interval is how frequently sets will be checked for 
+# expiration. This is a tradeoff of CPU usage vs. memory
 cleanup_interval: 30
 
 # Redis
