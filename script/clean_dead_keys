@@ -1,3 +1,10 @@
 #!/usr/bin/ruby
+require 'rubygems'
+require 'redis'
+r = Redis.new
 
-puts "This is just a stub -- for cleaning up zsets and files that are not longer represented in the datapoints set" 
+datapoints = r.smembers "datapoints"; nil
+datapoint_keys = r.keys("timers:*") + r.keys("counters:*"); nil
+stale_keys = datapoint_keys - datapoints; nil
+
+stale_keys.each{|k| r.del k}; nil
