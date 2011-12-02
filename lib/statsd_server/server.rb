@@ -23,7 +23,7 @@ module StatsdServer
 
     def receive_data(msg)    
       msg.split("\n").each do |row|
-        # puts row
+        puts "#{Time.now} got #{row}" if OPTIONS[:debug]
         bits = row.split(':')
         key = bits.shift.gsub(/\s+/, '_').gsub(/\//, '-').gsub(/[^a-zA-Z_\-0-9\.]/, '')
         bits.each do |record|

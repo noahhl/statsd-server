@@ -8,7 +8,7 @@ require 'statsd_server/version'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:redis => true }
+  options = {:redis => true, :debug => false }
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -29,6 +29,10 @@ begin
       exit
     end
 
+    opts.on("-d", "--debug", "Debug mode") do
+      options[:debug] = true
+    end
+
     opts.on("-h", "--help", "Show this message") do
       puts opts
       exit
@@ -44,6 +48,7 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
+    OPTIONS = options
     StatsdServer::Server::Daemon.new.run(options)
   end
 rescue Exception => e
