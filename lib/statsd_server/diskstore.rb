@@ -11,7 +11,7 @@ module StatsdServer
             StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from diskstore.\n"  if $options[:debug]
             datapoints.each do |datapoint|
               retention = $config["retention"].find{|r| r[:interval] != $config["flush_interval"]}
-              truncate! "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
+              enqueue "truncate!",  "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
             end
           end
           StatsdServer.logger "Finished truncating diskstore in #{timing.real} seconds" if $options[:debug]
@@ -24,10 +24,10 @@ module StatsdServer
         File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
       end
 
-      def enqueue(statistic, ts, value)
+      def enqueue(type, statistic, *args)
         filename = calc_filename(statistic)
-        value = "#{ts} #{value}"
-        StatsdServer::Queue.enqueue "#{filename}\x0#{value}"
+        value = args.join(" ")
+        StatsdServer::Queue.enqueue "#{type}\x0#{filename}\x0#{value}"
       end
 
       def store!(filename, value)
@@ -52,8 +52,7 @@ module StatsdServer
         datapoints
       end
 
-      def truncate!(statistic, since)
-        filename = calc_filename(statistic)
+      def truncate!(filename, since)
         StatsdServer.logger "Truncating #{filename} since #{since}" if $options[:debug]
         unless File.exists? "#{filename}tmp"  
           File.open("#{filename}tmp", "w") do |tmpfile|

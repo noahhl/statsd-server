@@ -29,8 +29,12 @@ module StatsdServer
 
       def perform(job)
         StatsdServer.logger "[WORKER] Performing #{job} job." if $options[:debug]
-        filename, value = job.split("\x0")
-        StatsdServer::Diskstore.store!(filename, value)
+        type, filename, value = job.split("\x0")
+        if type == "store!"
+          StatsdServer::Diskstore.store!(filename, value)
+        elsif type == "truncate!"
+          StatsdServer::Diskstore.truncate!(filename, value)
+        end
       end
 
       def enqueue(job)
