@@ -3,7 +3,7 @@ module StatsdServer
     class << self
 
       def parse_incoming_message(row)
-        StatsdServer.logger "received #{row}" if OPTIONS[:debug]
+        StatsdServer.logger "received #{row}" if $options[:debug]
         bits = row.split(':')
         key = bits.shift.gsub(/\s+/, '_').gsub(/\//, '-').gsub(/[^a-zA-Z_\-0-9\.]/, '')
         bits.each do |record|

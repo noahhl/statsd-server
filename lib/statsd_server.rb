@@ -1,49 +1,49 @@
-require 'socket'
-# encoding: utf-8
-module StatsdServer
+  require 'socket'
+  # encoding: utf-8
+  module StatsdServer
 
-  def self.logger(message)
-    puts "#{Time.now} #{message}"
-  end
-
-  #
-  # Statsd::Client by Rein Henrichs -- github.com/reinh/statsd
-  # Embedding here for legacy reasons
-  class Client
-    # = Statsd: A Statsd client (https://github.com/etsy/statsd)
-    #
-    # @example Set up a global Statsd client for a server on localhost:9125
-    #   $statsd = Statsd.new 'localhost', 8125
-    # @example Send some stats
-    #   $statsd.increment 'garets'
-    #   $statsd.timing 'glork', 320
-    # @example Use {#time} to time the execution of a block
-    #   $statsd.time('account.activate') { @account.activate! }
-    # @example Create a namespaced statsd client and increment 'account.activate'
-    #   statsd = Statsd.new('localhost').tap{|sd| sd.namespace = 'account'}
-    #   statsd.increment 'activate'
-    # A namespace to prepend to all statsd calls.
-    attr_accessor :namespace
-
-    #characters that will be replaced with _ in stat names
-    RESERVED_CHARS_REGEX = /[\:\|\@]/
-    
-    class << self
-      # Set to any standard logger instance (including stdlib's Logger) to enable
-      # stat logging using logger.debug
-      attr_accessor :logger
-    end
-    
-    # @param [String] host your statsd host
-    # @param [Integer] port your statsd port
-    def initialize(host, port=8125)
-      @host, @port = host, port
+    def self.logger(message)
+      puts "#{Time.now} #{message}" unless ENV['silent'] == 'true'
     end
 
-    # Sends an increment (count = 1) for the given stat to the statsd server. 
     #
-    # @param stat (see #count)
-    # @param sample_rate (see #count)
+    # Statsd::Client by Rein Henrichs -- github.com/reinh/statsd
+    # Embedding here for legacy reasons
+    class Client
+      # = Statsd: A Statsd client (https://github.com/etsy/statsd)
+      #
+      # @example Set up a global Statsd client for a server on localhost:9125
+      #   $statsd = Statsd.new 'localhost', 8125
+      # @example Send some stats
+      #   $statsd.increment 'garets'
+      #   $statsd.timing 'glork', 320
+      # @example Use {#time} to time the execution of a block
+      #   $statsd.time('account.activate') { @account.activate! }
+      # @example Create a namespaced statsd client and increment 'account.activate'
+      #   statsd = Statsd.new('localhost').tap{|sd| sd.namespace = 'account'}
+      #   statsd.increment 'activate'
+      # A namespace to prepend to all statsd calls.
+      attr_accessor :namespace
+
+      #characters that will be replaced with _ in stat names
+      RESERVED_CHARS_REGEX = /[\:\|\@]/
+      
+      class << self
+        # Set to any standard logger instance (including stdlib's Logger) to enable
+        # stat logging using logger.debug
+        attr_accessor :logger
+      end
+      
+      # @param [String] host your statsd host
+      # @param [Integer] port your statsd port
+      def initialize(host, port=8125)
+        @host, @port = host, port
+      end
+
+      # Sends an increment (count = 1) for the given stat to the statsd server. 
+      #
+      # @param stat (see #count)
+      # @param sample_rate (see #count)
     # @see #count
     def increment(stat, sample_rate=1); count stat, 1, sample_rate end
 

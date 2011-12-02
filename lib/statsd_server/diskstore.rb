@@ -14,7 +14,7 @@ module StatsdServer
               truncate! "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
             end
           end
-          StatsdServer.logger "Finished truncating diskstore in #{timing.real} seconds" if OPTIONS[:debug]
+          StatsdServer.logger "Finished truncating diskstore in #{timing.real} seconds" if $options[:debug]
         end
       end
 
@@ -24,10 +24,16 @@ module StatsdServer
         File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
       end
 
-      def store!(statistic, ts, value)
+      def enqueue(statistic, ts, value)
+        puts "Queueing value: #{statistic} #{ts} #{value}" if $options[:debug]
         filename = calc_filename(statistic)
+        value = "#{ts} #{value}"
+        $redis.lpush "diskstoreQueue", "#{filename}\x0#{value}"
+      end
+
+      def store!(filename, value)
         File.open(filename, 'a+') do |file|
-          file.write("#{ts} #{value}\n")
+          file.write("#{value}\n")
           file.close
         end
       end
@@ -49,7 +55,7 @@ module StatsdServer
 
       def truncate!(statistic, since)
         filename = calc_filename(statistic)
-        StatsdServer.logger "Truncating #{filename} since #{since}" if OPTIONS[:debug]
+        StatsdServer.logger "Truncating #{filename} since #{since}" if $options[:debug]
         unless File.exists? "#{filename}tmp"  
           File.open("#{filename}tmp", "w") do |tmpfile|
             File.open(filename, 'r') do |file|

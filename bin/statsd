@@ -14,7 +14,7 @@ begin
     opts.banner = "Usage: statsd [options]"
 
     opts.separator ""
-    opts.separator "Options:"
+    opts.separator "options:"
 
     opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
      options[:config] = x 
@@ -48,7 +48,6 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
-    OPTIONS = options
     StatsdServer::Server::Daemon.new.run(options)
   end
 rescue Exception => e

@@ -4,52 +4,19 @@ port: 8125
 
 # Flush interval should be your finest retention in seconds
 flush_interval: 10
-
-# Graphite
-graphite_host: localhost
-graphite_port: 2003
-
-# Mongo
-mongo_host: localhost
-mongo_database: statsdb
-
-#SimpleDB
-key_size: 2500
-aws_access_key: SDJFSKLFJ
-aws_access_key_secret: SDLKFJSLDKFJ
+# Cleanup interval is how frequently sets will be checked for 
+# expiration. This is a tradeoff of CPU usage vs. memory
+cleanup_interval: 30
 
 # Redis
 redis_host: localhost 
 redis_port: 6379
 # Uses the same format as graphite's schema retentions, accomplished by
-# expiring keys randomly based on time intervals
+# storing aggregated keys at each retention level. 
 # "10:2160,60:10080,600:262974" translates to:
 # 6 hours of 10 second data (what we consider "near-realtime")
 # 1 week of 1 minute data
 # 5 years of 10 minute data
-redis_retention: "10:2160,60:10080,600:262974"
+retention: "10:2160,60:10080,600:262974"
 coalmine_data_path: "test/data/"
-
-
-# If you change these, you need to delete the capped collections yourself!
-# Average mongo record size is 152 bytes
-# 10s or 1min data is transient so we'll use MongoDB's capped collections. These collections are fixed in size.
-# 5min and 1d data is interesting to preserve long-term. These collections are not capped.
-retentions: 
-    - name: stats_per_10s
-      seconds: 10
-      capped: true
-      cap_bytes: 268_435_456 # 2**28
-    - name: stats_per_1min
-      seconds: 60
-      capped: true
-      cap_bytes: 1_073_741_824 # 2**30
-    - name: stats_per_5min
-      seconds: 600
-      cap_bytes: 0 
-      capped: false
-    - name: stats_per_day
-      seconds: 86400
-      cap_bytes: 0 
-      capped: false
 

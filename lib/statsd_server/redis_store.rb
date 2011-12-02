@@ -7,13 +7,13 @@ module StatsdServer
           timing = Benchmark.measure do 
             StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from redis." 
             datapoints.each do |datapoint|
-              retention = $config["retention"].find{|r| r[:interval] == $config["flush_interval"]}
+              retention = $config['retention'].find{|r| r[:interval] == $config["flush_interval"]}
               since = Time.now.to_i - (retention[:interval] * retention[:count])
-              StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." if OPTIONS[:debug]
-              $redis.zremrangebyscore retention, 0, since
+              StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." #if $options[:debug]
+              $redis.zremrangebyscore datapoint, 0, since
             end
           end
-          StatsdServer.logger "Finished truncating redis in #{timing.real} seconds" if OPTIONS[:debug]
+          StatsdServer.logger "Finished truncating redis in #{timing.real} seconds" if $options[:debug]
         end
       end
 
@@ -59,6 +59,11 @@ module StatsdServer
           end
         end
       end
+      
+      def compute_value_for_key(data, now)
+        data = tsencode(data)
+        "#{now}\x01#{data}"
+      end
 
       private
 
@@ -72,11 +77,6 @@ module StatsdServer
               $redis.sadd("needsAggregated:#{retention[:interval]}", key)
             end
           end
-        end
-        
-        def compute_value_for_key(data, now)
-          data = tsencode(data)
-          "#{now}\x01#{data}"
         end
 
         def tsencode(data)

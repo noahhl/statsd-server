@@ -1,3 +1,4 @@
+require 'array'
 module StatsdServer
   class Aggregation
 
@@ -35,34 +36,45 @@ module StatsdServer
     def store!
       begin
         key_time = normalize_time(@now, @interval)
-        Diskstore.store! "#{@key}:#{@interval}", key_time.to_s, calculate_aggregation.to_s
-        $redis.srem("needsAggregated:#{@interval}", @key)
+        calculate_aggregation do |aggregation|
+          puts aggregation 
+          StatsdServer::Diskstore.enqueue "#{@key}:#{@interval}", key_time.to_s, aggregation.to_s
+          $redis.srem("needsAggregated:#{@interval}", @key)
+        end
       rescue Exception => e
         StatsdServer.logger "Encountered an error trying to store #{@key}:#{@interval}: #{e}"
       end
     end
     
-    def calculate_aggregation(values=nil)
+    def calculate_aggregation(values=nil, &f)
       if values.nil?
-        values = values_from_redis
+        values_from_redis do |values|
+          return unless values.is_a? Array
+          if EventMachine.reactor_running?
+            values.method(@aggregation).call.tap(&f)
+          else
+            return values.method(@aggregation).call.tap(&f)
+          end
+        end
+      else
+        return unless values.is_a? Array
+        return values.method(@aggregation).call
       end
-      return unless values.is_a? Array
-      values.method(@aggregation).call
     end
 
-    private
       def normalize_time(t, step)
         t = t.to_i
         t - (t % step)
       end
 
-      def values_from_redis
-        end_time = normalize_time(@now, @interval+1)
+      def values_from_redis(&f)
+        end_time = normalize_time(@now, $config["flush_interval"]) + 1
         start_time = end_time - (@interval+1)
         $redis.zrangebyscore(@key, start_time, end_time) do |keys|
-          keys.map{|key| decode_record(key) rescue nil}.compact
+          keys.map{|key| decode_record(key) rescue nil}.compact.tap(&f)
         end
       end
+    private
       
       def decode_record(key)
         s = key.split("\x01")

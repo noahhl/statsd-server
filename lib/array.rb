@@ -5,7 +5,7 @@ class Array
   end
 
   def mean
-   self.array_sum / self.length
+   self.sum.to_f / self.length
   end
 
   def median

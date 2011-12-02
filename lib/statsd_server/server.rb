@@ -10,6 +10,8 @@ require 'statsd_server/aggregation'
 require 'statsd_server/diskstore'
 require 'statsd_server/redis_store'
 
+$options = {}
+
 module StatsdServer
   module Server #< EM::Connection  
     
@@ -40,7 +42,8 @@ module StatsdServer
 
     class Daemon
       def run(options)
-        $config = YAML::load(ERB.new(IO.read(options[:config])).result)
+        $options = options
+        $config = YAML::load(ERB.new(IO.read($options[:config])).result)
         $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
 
         # Start the server
