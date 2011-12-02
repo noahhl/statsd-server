@@ -2,7 +2,6 @@ require 'rubygems'
 require 'eventmachine'
 require 'yaml'
 require 'erb'
-require 'statsd_server/graphite'
 module StatsdServer
   module Server #< EM::Connection  
     
@@ -48,46 +47,25 @@ module StatsdServer
       def run(options)
         config = YAML::load(ERB.new(IO.read(options[:config])).result)
       
-        if options[:graphite]
-          require 'statsd_server/graphite' 
-        end
-        
-        if options[:redis]
-          require 'statsd_server/redis_store'
-          ENV["coalmine_data_path"] = config['coalmine_data_path']
-          StatsdServer::RedisStore.host = config["redis_host"]
-          StatsdServer::RedisStore.port = config["redis_port"]
-          StatsdServer::RedisStore.flush_interval = config['flush_interval']
-          StatsdServer::RedisStore.retentions = config['redis_retention'].split(',')
-        end
+        require 'statsd_server/redis_store'
+        ENV["coalmine_data_path"] = config['coalmine_data_path']
+        StatsdServer::RedisStore.host = config["redis_host"]
+        StatsdServer::RedisStore.port = config["redis_port"]
+        StatsdServer::RedisStore.flush_interval = config['flush_interval']
+        StatsdServer::RedisStore.retentions = config['redis_retention'].split(',')
 
         # Start the server
         EventMachine::run do
           EventMachine::open_datagram_socket(config['bind'], config['port'], StatsdServer::Server)  
           
-
           # Periodically Flush
           EventMachine::add_periodic_timer(config['flush_interval']) do
             counters,timers = StatsdServer::Server.get_and_clear_stats!
-
-             # Flush Adapters
-
-            if options[:redis]
               EM.defer { StatsdServer::RedisStore.flush_stats(counters,timers) } 
-            end
 
-            if options[:graphite]
-              EventMachine.connect config['graphite_host'], config['graphite_port'], StatsdServer::Graphite do |conn|
-                conn.counters = counters
-                conn.timers = timers
-                conn.flush_interval = config['flush_interval']
-                conn.flush_stats
-              end     
-            end
           end
 
           #Clean up redis zsets
-            if options[:redis]
               EventMachine::add_periodic_timer(config['flush_interval'] * 200) do
                 EM.defer {StatsdServer::RedisStore.cleanup }
               end
@@ -97,7 +75,6 @@ module StatsdServer
                     EM.defer {StatsdServer::RedisStore.aggregate(retention)}
                   end
                 end
-              end
             end
 
         end

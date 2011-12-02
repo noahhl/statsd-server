@@ -8,7 +8,7 @@ Version = 'statsd version 0.6.4'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:graphite => false, :redis => false, :simpledb => false}
+  options = {:redis => true }
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -18,10 +18,6 @@ begin
 
     opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
      options[:config] = x 
-    end
-
-    opts.on("-g", "--graphite", "Flush stats to Graphite") do 
-     options[:graphite] = true
     end
     
     opts.on("-r", "--redis", "Flush stats to Redis") do 
