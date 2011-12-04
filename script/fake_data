@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+require 'rubygems'
+require 'optparse'
+load 'lib/statsd_server.rb'
+
+begin
+  options = {:host => "127.0.0.1", :port => 8125}
+  parser = OptionParser.new do |opts|
+    opts.banner = "Usage: fake_data [options] <number of unique datapoints> <datapoints per second>"
+
+    opts.separator ""
+    opts.separator "options:"
+
+    opts.on("-sSERVER", "--server SERVER", "Statsd server host:port") do |x|
+      options[:host] = x.split(":")[0]
+      options[:port] = x.split(":")[1].to_i
+    end
+
+    opts.on("-h", "--help", "Show this message") do
+      puts opts
+      exit
+    end
+
+  end
+
+  parser.parse!
+
+  datapoints = ARGV[0].to_i || 100
+  per_second = ARGV[1].to_i || 10
+
+  client = StatsdServer::Client.new(options[:host], options[:port])
+  client.namespace = "fakedata"
+
+  puts "Starting to send fake data to #{options[:host]}:#{options[:port]}. Sending #{datapoints} unique datapoints at a rate of #{per_second} per second"
+  loop do
+     per_second.times do
+       key = "random_#{(rand*datapoints).round}"
+       value = rand * 1000
+       rand < 0.5 ? client.increment(key) : client.timing(key, value)
+     end
+     sleep 1
+  end
+
+
+rescue Exception => e
+  if e.instance_of?(SystemExit)
+    raise
+  else
+    puts 'Uncaught exception'
+    puts e.message
+    puts e.backtrace.join("\n")
+  end
+end
