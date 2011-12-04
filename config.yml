@@ -1,6 +1,7 @@
 ---
 bind: 127.0.0.1
 port: 8125
+info_port: 8126
 
 # Flush interval should be your finest retention in seconds
 flush_interval: 10

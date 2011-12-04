@@ -10,6 +10,7 @@ require 'statsd_server/queue'
 require 'statsd_server/aggregation'
 require 'statsd_server/diskstore'
 require 'statsd_server/redis_store'
+require 'statsd_server/info_server'
 
 $options = {}
 
@@ -21,7 +22,8 @@ module StatsdServer
     $num_stats = 0
 
     def post_init
-      @started = Time.now
+      $started = Time.now
+      $last_cleanup = Time.now
       $redis = EM::Protocols::Redis.connect $config["redis_host"], $config["redis_port"]
       $redis.errback do |code|
         StatsdServer.logger "Error code: #{code}"
@@ -39,23 +41,9 @@ module StatsdServer
 
     def receive_data(msg)    
       msg.split("\n").each do |row|
-        if row == "INFO"
-          $redis.llen("diskstoreQueue") do |queue_size|
-            send_data <<-info
-Up since: #{@started}
-Total statistics since restart: #{$num_stats}
-Statistics pending write to disk: #{queue_size}
-EM threadpool size: #{EM.threadpool_size}
-EM connection count: #{EM.connection_count}
-EM max timers: #{EM.get_max_timers}
-EM heartbeat interval: #{EM.heartbeat_interval}
-            info
-          end
-        else
-          StatsdServer::UDP.parse_incoming_message(row)
-        end
+        StatsdServer::UDP.parse_incoming_message(row)
       end
-    end    
+    end
 
     class Daemon
       def run(options)
@@ -68,6 +56,7 @@ EM heartbeat interval: #{EM.heartbeat_interval}
           EventMachine.threadpool_size = 50
           #Bind to the socket and gather the incoming datapoints
           EventMachine::open_datagram_socket($config['bind'], $config['port'], StatsdServer::Server)  
+          EventMachine::start_server($config['bind'], ($config['info_port'] || $config['port']+1), StatsdServer::Server::InfoServer)  
 
           # On the flush interval, do the primary aggregation and flush it to
           # a redis zset
@@ -92,6 +81,7 @@ EM heartbeat interval: #{EM.heartbeat_interval}
           # retention limit
           EventMachine::add_periodic_timer($config['cleanup_interval']) do
             EM.defer do 
+              $last_cleanup = Time.now
               StatsdServer::RedisStore.cleanup!
               StatsdServer::Diskstore.cleanup!
             end
