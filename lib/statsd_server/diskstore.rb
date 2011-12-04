@@ -68,6 +68,8 @@ module StatsdServer
           end
           FileUtils.cp("#{filename}tmp", filename) rescue nil
         end
+      rescue Errno::ENOENT
+        StatsdServer.logger "Encountered an error trying to truncate #{filename}: #{e}" if $options[:debug]
       rescue Exception => e
         StatsdServer.logger "Encountered an error trying to truncate #{filename}: #{e}"
       ensure 
