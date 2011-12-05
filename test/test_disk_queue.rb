@@ -8,7 +8,7 @@ class DiskQueueTest < Test::Unit::TestCase
   
   def setup
     options = {:config => "test/config.yml"}
-  #  ENV["silent"] = "true"
+    ENV["silent"] = "true"
     $config = YAML::load(ERB.new(IO.read(options[:config])).result)
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
     $redis = RedisCustom.new({:host => $config["redis_host"], :port => $config["redis_port"]})
@@ -24,10 +24,14 @@ class DiskQueueTest < Test::Unit::TestCase
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
     StatsdServer::RedisStore.flush!($counters, {})
     StatsdServer::Aggregation.aggregate_pending!(60)
-    assert_equal 1, $redis.llen("diskstoreQueue")
+    assert_equal 1, $redis.llen("aggregationQueue")
+    $redis.rpop("aggregationQueue") do |job|
+      StatsdServer::Queue.perform_aggregation(job)
+    end
     StatsdServer::Diskstore.expects(:store!)
+    assert_equal 1, $redis.llen("diskstoreQueue")
     $redis.rpop("diskstoreQueue") do |job|
-      StatsdServer::Queue.perform(job)
+      StatsdServer::Queue.perform_diskstore(job)
     end
   end
 

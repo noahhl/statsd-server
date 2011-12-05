@@ -41,7 +41,7 @@ module StatsdServer
 
     def receive_data(msg)    
       msg.split("\n").each do |row|
-        StatsdServer::UDP.parse_incoming_message(row)
+        StatsdServer::UDP.parse_incoming_message(row) 
       end
     end
 
@@ -53,7 +53,7 @@ module StatsdServer
 
         # Start the server
         EventMachine::run do
-          EventMachine.threadpool_size = 50
+          EventMachine.threadpool_size = 500 
           #Bind to the socket and gather the incoming datapoints
           EventMachine::open_datagram_socket($config['bind'], $config['port'], StatsdServer::Server)  
           EventMachine::start_server($config['bind'], ($config['info_port'] || $config['port']+1), StatsdServer::Server::InfoServer)  
@@ -70,9 +70,7 @@ module StatsdServer
           $config['retention'].each do |retention|
             unless retention[:interval] == $config["flush_interval"] 
               EventMachine::add_periodic_timer(retention[:interval]) do
-                EM.defer do
-                  StatsdServer::Aggregation.aggregate_pending!(retention[:interval])
-                end
+                StatsdServer::Aggregation.aggregate_pending!(retention[:interval])
               end
             end
           end
@@ -80,17 +78,10 @@ module StatsdServer
           # On the cleanup interval, clean up those values that are past their
           # retention limit
           EventMachine::add_periodic_timer($config['cleanup_interval']) do
-            EM.defer do 
-              $last_cleanup = Time.now
-              StatsdServer::RedisStore.cleanup!
-              StatsdServer::Diskstore.cleanup!
-            end
+            $last_cleanup = Time.now
+            StatsdServer::RedisStore.cleanup!
+            StatsdServer::Diskstore.cleanup!
           end
-          
-          # Start a worker to write aggregated datapoints to disk
-         # $queue_worker = Thread.new do
-         #   StatsdServer::Queue.work!
-         # end
 
         end
       end

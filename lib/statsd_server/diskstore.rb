@@ -27,7 +27,7 @@ module StatsdServer
       def enqueue(type, statistic, *args)
         filename = calc_filename(statistic)
         value = args.join(" ")
-        StatsdServer::Queue.enqueue "#{type}\x0#{filename}\x0#{value}"
+        $redis.lpush "diskstoreQueue", "#{type}\x0#{filename}\x0#{value}"
       end
 
       def store!(filename, value)

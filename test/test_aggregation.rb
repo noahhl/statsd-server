@@ -30,6 +30,7 @@ class AggregationTest < Test::Unit::TestCase
     $config = YAML::load(ERB.new(IO.read(options[:config])).result)
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
     $redis = RedisCustom.new({:host => $config["redis_host"], :port => $config["redis_port"]})
+    $redis_nonem = Redis.new({:host =>$config["redis_host"], :port => $config["redis_port"]})
   end
 
   def teardown
@@ -79,7 +80,7 @@ class AggregationTest < Test::Unit::TestCase
     $redis.sadd "needsAggregated:600", "test1"
     StatsdServer::Diskstore.stubs(:"store!").returns(true)
     StatsdServer::Aggregation.aggregate_pending!(60)
-    assert_equal 0, $redis.scard("needsAggregated:60")
+    assert_equal 0, $redis.llen("needsAggregated:60")
     StatsdServer::Aggregation.aggregate_pending!(600)
     assert_equal 0, $redis.scard("needsAggregated:600")
   end
@@ -101,12 +102,12 @@ class AggregationTest < Test::Unit::TestCase
     end
   end
 
-  def test_storing_an_aggregation_queues_it_to_diskstore
-    assert_equal 0, $redis.llen("diskstoreQueue")
+  def test_storing_an_aggregation_queues_it_to_worker
+    assert_equal 0, $redis.llen("aggregationQueue")
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
     StatsdServer::RedisStore.flush!($counters, {})
     StatsdServer::Aggregation.aggregate_pending!(60)
-    assert_equal 1, $redis.llen("diskstoreQueue")
+    assert_equal 1, $redis.llen("aggregationQueue")
   end
 
 end

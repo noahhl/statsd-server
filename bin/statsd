@@ -8,7 +8,7 @@ require 'statsd_server/version'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:redis => true, :debug => false }
+  options = {:redis => true, :debug => false, :workers => 1}
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -18,6 +18,10 @@ begin
 
     opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
      options[:config] = x 
+    end
+    
+    opts.on("-wWORKERS", "--workers CONFIG", "Number of workers to run") do |x|
+     options[:workers] = x.to_i
     end
     
     opts.on("-r", "--redis", "Flush stats to Redis") do 
@@ -48,12 +52,21 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
-    @worker = fork do 
-      StatsdServer::Queue.work!(options)
+    @workers = []
+    options[:workers].times do 
+      @workers << fork do 
+        StatsdServer::Queue.work_diskstore!(options)
+      end
+      @workers << fork do 
+        StatsdServer::Queue.work_aggregation!(options)
+      end
     end
     StatsdServer::Server::Daemon.new.run(options.merge({:worker => @worker}))
   end
 rescue Exception => e
+  @workers.each do |worker|
+    Process.kill("HUP", worker)
+  end
   if e.instance_of?(SystemExit)
     raise
   else
