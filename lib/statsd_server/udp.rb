@@ -12,6 +12,9 @@ module StatsdServer
           if (fields[1].strip == "ms") 
             $timers[key] ||= []
             $timers[key].push(fields[0].to_f)
+          elsif(fields[1].strip == "g")
+            $gauges[key] ||= [] 
+            $gauges[key].push([Time.now.to_i, fields[0].to_f])
           else
             if (fields[2] && fields[2].match(/^@([\d\.]+)/)) 
               sample_rate = fields[2].match(/^@([\d\.]+)/)[1]

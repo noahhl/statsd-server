@@ -52,8 +52,9 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
+    @workers = []
     options[:workers].times do 
-      fork do 
+      @workers << fork do 
         StatsdServer::Queue.work!(options)
       end
     end

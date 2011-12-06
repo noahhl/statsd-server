@@ -18,6 +18,7 @@ module StatsdServer
   module Server #< EM::Connection  
     
     $counters = {}
+    $gauges = {}
     $timers = {}
     $num_stats = 0
 
@@ -33,10 +34,12 @@ module StatsdServer
 
     def self.get_and_clear_stats!
       counters = $counters.dup
+      gauges = $gauges.dup
       timers = $timers.dup
       $counters.clear
+      $gauges.clear
       $timers.clear
-      [counters,timers]
+      [counters,gauges,timers]
     end
 
     def receive_data(msg)    
@@ -61,8 +64,8 @@ module StatsdServer
           # On the flush interval, do the primary aggregation and flush it to
           # a redis zset
           EventMachine::add_periodic_timer($config['flush_interval']) do
-            counters,timers = StatsdServer::Server.get_and_clear_stats!
-            StatsdServer::RedisStore.flush!(counters,timers) 
+            counters,gauges,timers = StatsdServer::Server.get_and_clear_stats!
+            StatsdServer::RedisStore.flush!(counters,gauges,timers) 
           end
 
           # At every retention that's longer than the flush interval, 

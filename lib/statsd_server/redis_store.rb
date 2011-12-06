@@ -17,13 +17,21 @@ module StatsdServer
         end
       end
 
-      def flush!(counters, timers)
-        StatsdServer.logger "Flushing #{counters.count} counters and #{timers.count} timers to Redis\n"
+      def flush!(counters, gauges, timers)
+        StatsdServer.logger "Flushing #{counters.count} counters, #{gauges.count} gauges and #{timers.count} timers to Redis\n"
+        @now = Time.now.to_i
         
         #store counters
         counters.each_pair do |key, value|
           store_all_retentions "counters:#{key}", value
           $num_stats += 1
+        end
+
+        gauges.each_pair do |key, value|
+          $redis.sadd "datapoints", "gauges:#{key}" 
+          value.each do |v|
+            StatsdServer::Diskstore.enqueue("store!", "gauges:#{key}", v[0], v[1])
+          end
         end
      
         timers.each_pair do |key, values|
@@ -52,8 +60,7 @@ module StatsdServer
           $config["retention"].each_with_index do |retention, index|
             if index.zero? 
               $redis.sadd "datapoints", key 
-              now = Time.now.to_i
-              $redis.zadd key, now, compute_value_for_key(value.to_s, now)
+              $redis.zadd key, @now, compute_value_for_key(value.to_s, @now)
             else
               $redis.sadd("needsAggregated:#{retention[:interval]}", key)
             end

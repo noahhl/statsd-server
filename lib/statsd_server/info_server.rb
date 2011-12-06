@@ -21,6 +21,8 @@ EM heartbeat interval: #{EM.heartbeat_interval}
             end
           elsif row.match(/counters/i)
             send_data "#{$counters.to_s}\n"
+          elsif row.match(/gauges/i)
+            send_data "#{$gauges.to_s}\n"
           elsif row.match(/timers/i)
             send_data "#{$timers.to_s}\n"
           elsif row.match(/quit/i)

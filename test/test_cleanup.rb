@@ -23,17 +23,17 @@ class CleanupTest < Test::Unit::TestCase
   end
 
   def test_cleanup_truncates_redis_zsets  
-    StatsdServer::RedisStore.flush!($counters, {})
+    StatsdServer::RedisStore.flush!($counters, {}, {})
     $redis.expects(:zremrangebyscore).with('counters:test_counter', 0, (Time.now.to_i - 21600))
     StatsdServer::RedisStore.cleanup!
   end
   
   def test_cleanup_truncates_files_on_disk
-    StatsdServer::RedisStore.flush!($counters, {})
+    StatsdServer::RedisStore.flush!($counters, {}, {})
     StatsdServer::Diskstore.expects(:truncate!).with('test/data/37/2a/372a5d5450ef177a737f6a92c0246436', (Time.now.to_i - 604800).to_s)
     StatsdServer::Diskstore.cleanup!
     $redis.rpop("diskstoreQueue") do |job|
-      StatsdServer::Queue.perform_diskstore(job)
+      StatsdServer::Queue.perform(job)
     end
   end
 

@@ -83,13 +83,13 @@ class AggregationTest < Test::Unit::TestCase
 
   def test_calculating_aggregates_over_time_periods_captures_full_dataset
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
-    StatsdServer::RedisStore.flush!($counters, {})
+    StatsdServer::RedisStore.flush!($counters, {}, {})
     Timecop.freeze(Time.now + 15) do
       StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
-      StatsdServer::RedisStore.flush!($counters, {})
+      StatsdServer::RedisStore.flush!($counters, {}, {})
       Timecop.freeze(Time.now + 15) do
         StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
-        StatsdServer::RedisStore.flush!($counters, {})
+        StatsdServer::RedisStore.flush!($counters, {}, {})
         aggregation = StatsdServer::Aggregation.new("counters:test_counter", 60, "sum")
         aggregation.calculate_aggregation do |result|
           assert_equal 3, result 
@@ -101,7 +101,7 @@ class AggregationTest < Test::Unit::TestCase
   def test_storing_an_aggregation_queues_it_to_worker
     assert_equal 0, $redis.llen("aggregationQueue")
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
-    StatsdServer::RedisStore.flush!($counters, {})
+    StatsdServer::RedisStore.flush!($counters, {}, {})
     StatsdServer::Aggregation.aggregate_pending!(60)
     assert_equal 1, $redis.llen("aggregationQueue")
   end

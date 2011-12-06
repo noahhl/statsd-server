@@ -22,16 +22,16 @@ class DiskQueueTest < Test::Unit::TestCase
 
   def test_queue_worker_sends_job_to_diskstore
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
-    StatsdServer::RedisStore.flush!($counters, {})
+    StatsdServer::RedisStore.flush!($counters, {}, {})
     StatsdServer::Aggregation.aggregate_pending!(60)
     assert_equal 1, $redis.llen("aggregationQueue")
     $redis.rpop("aggregationQueue") do |job|
-      StatsdServer::Queue.perform_aggregation(job)
+      StatsdServer::Queue.perform(job)
     end
     StatsdServer::Diskstore.expects(:store!)
     assert_equal 1, $redis.llen("diskstoreQueue")
     $redis.rpop("diskstoreQueue") do |job|
-      StatsdServer::Queue.perform_diskstore(job)
+      StatsdServer::Queue.perform(job)
     end
   end
 
