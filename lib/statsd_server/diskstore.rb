@@ -9,10 +9,11 @@ module StatsdServer
         $redis.smembers("datapoints") do |datapoints|
           timing = Benchmark.measure do 
             StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from diskstore.\n"  if $options[:debug]
-            datapoints.each do |datapoint|
-              $config["retention"].each_with_index do |retention, index|
+            $config["retention"].each_with_index do |retention, index|
+              since = (Time.now.to_i - (retention[:interval] * retention[:count]))
+              datapoints.each do |datapoint|
                 unless index.zero?
-                  enqueue "truncate!",  "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
+                  enqueue "truncate!",  "#{datapoint}:#{retention[:interval]}", since 
                 end
               end
             end

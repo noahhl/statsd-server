@@ -10,53 +10,31 @@ module StatsdServer
   class Queue
     class << self
 
-      def work_aggregation!(options)
-        StatsdServer.logger "[WORKER] Starting to monitor queue for jobs to to aggregate." 
+      def work!(options)
+        StatsdServer.logger "[WORKER] Starting to monitor queue for jobs to to aggregate or write to disk." 
         $options = options
         $config = YAML::load(ERB.new(IO.read($options[:config])).result)
         $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
         while true
-          $redis.rpop("aggregationQueue").tap do |job|
+          $redis.brpop("aggregationQueue", "diskstoreQueue", 30).tap do |job|
             if job
-              perform_aggregation(job)
+              perform(job[1])
             else 
-              StatsdServer.logger "[WORKER] Waiting for an aggregation job." if $options[:debug]
-              sleep 1
+              StatsdServer.logger "[WORKER] Waiting for an aggregation or diskstore job." if $options[:debug]
             end
           end
         end
       end
 
-      def work_diskstore!(options)
-        StatsdServer.logger "[WORKER] Starting to monitor queue for jobs to write to disk." 
-        $options = options
-        $config = YAML::load(ERB.new(IO.read($options[:config])).result)
-        $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
-        while true
-          $redis.rpop("diskstoreQueue").tap do |job|
-            if job
-              perform_diskstore(job)
-            else 
-              StatsdServer.logger "[WORKER] Waiting for a diskstore job." if $options[:debug]
-              sleep 1
-            end
-          end
-        end
-      end
-
-      def perform_aggregation(job)
+      def perform(job)
         StatsdServer.logger "[WORKER] Performing #{job} job." if $options[:debug]
-        now,interval,key,aggregation = job.split("\x0")
-        StatsdServer::Aggregation.new(key, interval.to_i, aggregation, now.to_i).store!
-      end
-
-      def perform_diskstore(job)
-        StatsdServer.logger "[WORKER] Performing #{job} job." if $options[:debug]
-        type, filename, value = job.split("\x0")
-        if type == "store!"
-          StatsdServer::Diskstore.store!(filename, value)
-        elsif type == "truncate!"
-          StatsdServer::Diskstore.truncate!(filename, value)
+        args = job.split("\x0")
+        if args[0]== "store!"
+          StatsdServer::Diskstore.store!(args[1], args[2])
+        elsif args[0]== "truncate!"
+          StatsdServer::Diskstore.truncate!(args[1], args[2])
+        else
+          StatsdServer::Aggregation.new(args[2], args[1].to_i, args[3], args[0].to_i).store!
         end
       end
 

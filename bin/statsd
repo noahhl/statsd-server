@@ -8,7 +8,7 @@ require 'statsd_server/version'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:redis => true, :debug => false, :workers => 1}
+  options = {:redis => true, :debug => false, :workers => 2}
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -52,13 +52,9 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
-    @workers = []
     options[:workers].times do 
-      @workers << fork do 
-        StatsdServer::Queue.work_diskstore!(options)
-      end
-      @workers << fork do 
-        StatsdServer::Queue.work_aggregation!(options)
+      fork do 
+        StatsdServer::Queue.work!(options)
       end
     end
     StatsdServer::Server::Daemon.new.run(options.merge({:worker => @worker}))

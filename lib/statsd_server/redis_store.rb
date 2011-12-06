@@ -6,9 +6,9 @@ module StatsdServer
         $redis.smembers("datapoints") do |datapoints|
           timing = Benchmark.measure do 
             StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from redis." if $options[:debug]
+            retention = $config['retention'][0]
+            since = Time.now.to_i - (retention[:interval] * retention[:count])
             datapoints.each do |datapoint|
-              retention = $config['retention'][0]
-              since = Time.now.to_i - (retention[:interval] * retention[:count])
               StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." if $options[:debug]
               $redis.zremrangebyscore datapoint, 0, since
             end
