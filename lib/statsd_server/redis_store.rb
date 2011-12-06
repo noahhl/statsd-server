@@ -7,7 +7,7 @@ module StatsdServer
           timing = Benchmark.measure do 
             StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from redis." if $options[:debug]
             datapoints.each do |datapoint|
-              retention = $config['retention'].find{|r| r[:interval] == $config["flush_interval"]}
+              retention = $config['retention'][0]
               since = Time.now.to_i - (retention[:interval] * retention[:count])
               StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." if $options[:debug]
               $redis.zremrangebyscore datapoint, 0, since
@@ -49,8 +49,8 @@ module StatsdServer
       private
 
         def store_all_retentions(key, value)
-          $config["retention"].each do |retention|
-            if retention[:interval] == $config["flush_interval"] 
+          $config["retention"].each_with_index do |retention, index|
+            if index.zero? 
               $redis.sadd "datapoints", key 
               now = Time.now.to_i
               $redis.zadd key, now, compute_value_for_key(value.to_s, now)

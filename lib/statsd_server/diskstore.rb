@@ -10,8 +10,11 @@ module StatsdServer
           timing = Benchmark.measure do 
             StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from diskstore.\n"  if $options[:debug]
             datapoints.each do |datapoint|
-              retention = $config["retention"].find{|r| r[:interval] != $config["flush_interval"]}
-              enqueue "truncate!",  "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
+              $config["retention"].each_with_index do |retention, index|
+                unless index.zero?
+                  enqueue "truncate!",  "#{datapoint}:#{retention[:interval]}", (Time.now.to_i - (retention[:interval] * retention[:count]))
+                end
+              end
             end
           end
           StatsdServer.logger "Finished truncating diskstore in #{timing.real} seconds" if $options[:debug]

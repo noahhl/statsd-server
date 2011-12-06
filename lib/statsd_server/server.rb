@@ -67,8 +67,8 @@ module StatsdServer
 
           # At every retention that's longer than the flush interval, 
           # perform an aggregation and store it to disk
-          $config['retention'].each do |retention|
-            unless retention[:interval] == $config["flush_interval"] 
+          $config['retention'].each_with_index do |retention, index|
+            unless index.zero?
               EventMachine::add_periodic_timer(retention[:interval]) do
                 StatsdServer::Aggregation.aggregate_pending!(retention[:interval])
               end
