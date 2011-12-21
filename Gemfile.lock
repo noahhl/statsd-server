@@ -1,0 +1,31 @@
+PATH
+  remote: .
+  specs:
+    statsd-server (0.7.0)
+      em-redis (~> 0.3.0)
+      erubis (>= 2.6.6)
+      eventmachine (>= 1.0.0.beta.4)
+      redis
+
+GEM
+  remote: http://rubygems.org/
+  specs:
+    em-redis (0.3.0)
+      eventmachine
+    erubis (2.7.0)
+    eventmachine (1.0.0.beta.4)
+    eventmachine (1.0.0.beta.4-java)
+    metaclass (0.0.1)
+    mocha (0.10.0)
+      metaclass (~> 0.0.1)
+    redis (2.2.2)
+    timecop (0.3.5)
+
+PLATFORMS
+  java
+  ruby
+
+DEPENDENCIES
+  mocha
+  statsd-server!
+  timecop
