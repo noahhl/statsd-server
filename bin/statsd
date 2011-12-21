@@ -58,11 +58,11 @@ begin
         StatsdServer::Queue.work!(options)
       end
     end
-    StatsdServer::Server::Daemon.new.run(options.merge({:worker => @worker}))
+    StatsdServer::Server::Daemon.new.run(options)
   end
 rescue Exception => e
   @workers.each do |worker|
-    Process.kill("HUP", worker)
+    Process.kill("SIGKILL", worker)
   end
   if e.instance_of?(SystemExit)
     raise
