@@ -40,7 +40,9 @@ module StatsdServer
         key_time = normalize_time(@now, @interval)
         calculate_aggregation do |aggregation|
           StatsdServer.logger("Aggregation #{@key} by #{@aggregation} for #{@interval} seconds at #{@now}") if $options[:debug]
-          StatsdServer::Diskstore.enqueue "store!", "#{@key}:#{@interval}", key_time.to_s, aggregation.to_s
+          unless aggregation.nil? || aggregation.nan? 
+            StatsdServer::Diskstore.store! Diskstore.calc_filename("#{@key}:#{@interval}"), "#{key_time.to_s} #{aggregation.to_s}"
+          end
         end
       rescue Exception => e
         StatsdServer.logger "Encountered an error trying to store #{@key}:#{@interval}: #{e}"
