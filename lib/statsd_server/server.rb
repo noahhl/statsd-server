@@ -1,7 +1,4 @@
-require 'rubygems'
 require 'eventmachine'
-require 'yaml'
-require 'erb'
 require 'benchmark'
 require 'em-redis'
 require 'base64'

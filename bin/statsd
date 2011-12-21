@@ -1,14 +1,16 @@
 #!/usr/bin/env ruby
 
 $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
+require 'rubygems'
 require 'yaml'
+require 'erb'
 require 'optparse'
 
 require 'statsd_server/version'
 begin
   ORIGINAL_ARGV = ARGV.dup
   
-  options = {:redis => true, :debug => false, :workers => 2}
+  options = {:redis => true, :debug => false, :workers => 1}
   
   parser = OptionParser.new do |opts|
     opts.banner = "Usage: statsd [options]"
@@ -18,10 +20,6 @@ begin
 
     opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
      options[:config] = x 
-    end
-    
-    opts.on("-wWORKERS", "--workers CONFIG", "Number of workers to run") do |x|
-     options[:workers] = x.to_i
     end
     
     opts.on("-r", "--redis", "Flush stats to Redis") do 
@@ -45,6 +43,9 @@ begin
   end
 
   parser.parse!
+
+  config = YAML::load(ERB.new(IO.read(options[:config])).result)
+  options[:workers] = [options[:workers], config["workers"].to_i].max
 
   # dispatch
   if !options[:config] 

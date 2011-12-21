@@ -9,6 +9,10 @@ flush_interval: 10
 # expiration. This is a tradeoff of CPU usage vs. memory
 cleanup_interval: 3600
 
+#Number of aggregation and diskwriting workers to spawn.
+#Default is one
+workers: 4
+
 # Redis
 redis_host: localhost 
 redis_port: 6379
