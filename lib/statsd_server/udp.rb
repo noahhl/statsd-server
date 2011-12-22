@@ -23,6 +23,8 @@ module StatsdServer
             $counters[key] += (fields[0].to_f || 1) * (1.0 / sample_rate.to_f)
           end
         end
+      rescue
+        nil
       end
 
     end
