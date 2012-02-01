@@ -23,6 +23,7 @@ module StatsdServer
       end
 
       def calc_filename(statistic)
+        return unless statistic
         file_hash = Digest::MD5.hexdigest(statistic)
         FileUtils.mkdir_p File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2])
         File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
