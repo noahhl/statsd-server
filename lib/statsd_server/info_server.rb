@@ -12,6 +12,7 @@ Total statistics since restart: #{$num_stats}
 Pending writes: #{disk_queue_size}
 Pending aggregations: #{aggregation_queue_size}
 Time since last cleanup: #{(Time.now - $last_cleanup).to_i}
+Number of workers: #{$workers.count}
 EM threadpool size: #{EM.threadpool_size}
 EM connection count: #{EM.connection_count}
 EM max timers: #{EM.get_max_timers}
@@ -25,8 +26,14 @@ EM heartbeat interval: #{EM.heartbeat_interval}
             send_data "#{$gauges.to_s}\n"
           elsif row.match(/timers/i)
             send_data "#{$timers.to_s}\n"
-          elsif row.match(/quit/i)
-            send_data "BYE"
+          elsif row.match(/add_worker/i)
+            $workers << fork { StatsdServer::Queue.work!($options) }
+            send_data "OK\n"
+          elsif row.match(/remove_worker/i)
+            $workers.pop.tap{|pid| Process.kill "SIGKILL", pid}
+            send_data "OK\n"
+          elsif row.match(/quit|exit/i)
+            send_data "BYE\n"
             close_connection
           end
         end

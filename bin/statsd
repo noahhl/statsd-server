@@ -53,16 +53,16 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
-    @workers = []
+    $workers = []
     options[:workers].times do 
-      @workers << fork do 
+      $workers << fork do 
         StatsdServer::Queue.work!(options)
       end
     end
     StatsdServer::Server::Daemon.new.run(options)
   end
 rescue Exception => e
-  @workers.each do |worker|
+  $workers.each do |worker|
     Process.kill("SIGKILL", worker)
   end
   if e.instance_of?(SystemExit)
