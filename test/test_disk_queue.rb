@@ -25,12 +25,8 @@ class DiskQueueTest < Test::Unit::TestCase
     StatsdServer::RedisStore.flush!($counters, {}, {})
     StatsdServer::Aggregation.aggregate_pending!(60)
     assert_equal 1, $redis.llen("aggregationQueue")
+    StatsdServer::Aggregation.any_instance.expects(:store!)
     $redis.rpop("aggregationQueue") do |job|
-      StatsdServer::Queue.perform(job)
-    end
-    StatsdServer::Diskstore.expects(:store!)
-    assert_equal 1, $redis.llen("diskstoreQueue")
-    $redis.rpop("diskstoreQueue") do |job|
       StatsdServer::Queue.perform(job)
     end
   end

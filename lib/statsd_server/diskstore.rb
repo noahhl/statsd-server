@@ -44,14 +44,20 @@ module StatsdServer
       def read(statistic, start_ts, end_ts)
         datapoints = []
         filename = calc_filename(statistic)
-        File.open(filename, 'r') do |file| 
-          while (line = file.gets)
-            ts, value = line.split
-            if ts >= start_ts && ts <= end_ts
-              datapoints << {:time => ts.to_i, :data => value}
+        begin
+          File.open(filename, 'r') do |file| 
+            while (line = file.gets)
+              ts, value = line.split
+              if ts >= start_ts && ts <= end_ts
+                datapoints << {:time => ts.to_i, :data => value}
+              end
             end
+            file.close
           end
-          file.close
+        rescue Errno::ENOENT => e
+          StatsdServer.logger "Encountered an error trying to read #{filename}: #{e}" if $options[:debug]
+        rescue Exception => e
+          StatsdServer.logger "Encountered an error trying to read #{filename}: #{e}"
         end
         datapoints
       end

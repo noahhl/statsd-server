@@ -53,17 +53,26 @@ begin
   else
     require 'statsd_server'
     require 'statsd_server/server'
+    require 'statsd_server/lookup_server'
     $workers = []
     options[:workers].times do 
       $workers << fork do 
         StatsdServer::Queue.work!(options)
       end
     end
+    $lookup = fork do
+      StatsdServer::LookupServer::Daemon.new.run(options)
+    end
     StatsdServer::Server::Daemon.new.run(options)
   end
 rescue Exception => e
-  $workers.each do |worker|
-    Process.kill("SIGKILL", worker)
+  if $workers
+    $workers.each do |worker|
+      Process.kill("SIGKILL", worker)
+    end
+  end
+  if $lookup
+    Process.kill("SIGQUIT", $lookup)
   end
   if e.instance_of?(SystemExit)
     raise

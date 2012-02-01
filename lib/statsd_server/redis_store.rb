@@ -28,7 +28,7 @@ module StatsdServer
         end
 
         gauges.each_pair do |key, value|
-          $redis.sadd "datapoints", "gauges:#{key}" 
+          $redis.sadd "datapoints", "gauges:#{key}"
           value.each do |v|
             StatsdServer::Diskstore.enqueue("store!", "gauges:#{key}", v[0], v[1])
           end
