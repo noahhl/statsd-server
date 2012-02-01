@@ -24,7 +24,7 @@ module StatsdServer
         suffix = history_to_use.zero? ? "" : ":#{retentions[history_to_use][:interval]}"
         values = []
         if metric.split(":")[0] == 'gauges'
-          StatsdServer::Diskstore.read(@key, begin_time.to_i.to_s, end_time.to_i.to_s).sort{|a,b| a[:time] <=> b[:time]}.tap do |values|
+          StatsdServer::Diskstore.read(metric, begin_time.to_i.to_s, end_time.to_i.to_s).sort{|a,b| a[:time] <=> b[:time]}.tap do |values|
             yield values 
           end
 
