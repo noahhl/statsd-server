@@ -40,6 +40,8 @@ module StatsdServer
           file.write("#{value}\n")
           file.close
         end
+      rescue Exception => e
+        StatsdServer.logger "Encountered an error trying to store to #{filename}: #{e}"
       end
 
       def read(statistic, start_ts, end_ts)
