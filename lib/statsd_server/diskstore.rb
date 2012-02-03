@@ -84,7 +84,7 @@ module StatsdServer
       rescue Exception => e
         StatsdServer.logger "Encountered an error trying to truncate #{filename}: #{e}"
       ensure 
-        FileUtils.rm("#{filename}tmp")
+        FileUtils.rm("#{filename}tmp") rescue nil
       end
 
     end
