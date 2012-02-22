@@ -32,6 +32,7 @@ module StatsdServer
           value.each do |v|
             StatsdServer::Diskstore.enqueue("store!", "gauges:#{key}", v[0], v[1])
           end
+          $num_stats += 1
         end
      
         timers.each_pair do |key, values|
