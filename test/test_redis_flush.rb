@@ -43,9 +43,9 @@ class RedisFlushTest < Test::Unit::TestCase
 
   def test_storing_a_gauge_directly_queues_to_disk
     assert_empty $redis.smembers "datapoints"
-    assert_equal 0, $redis.llen("diskstoreQueue")
+    assert_equal 0, $redis.llen("gaugeQueue")
     StatsdServer::RedisStore.flush!({}, $gauges, {})
-    assert  $redis.llen("diskstoreQueue") >= 1
+    assert  $redis.llen("gaugeQueue") >= 1
   end
 
   def test_storing_counter_initially_adds_key_to_redis

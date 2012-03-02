@@ -35,6 +35,12 @@ module StatsdServer
         $redis.lpush "diskstoreQueue", "#{type}\x0#{filename}\x0#{value}"
       end
 
+      def enqueue_gauge(type, statistic, *args)
+        filename = calc_filename(statistic)
+        value = args.join(" ")
+        $redis.lpush "gaugeQueue", "#{type}\x0#{filename}\x0#{value}"
+      end
+
       def store!(filename, value)
         File.open(filename, 'a+') do |file|
           file.write("#{value}\n")

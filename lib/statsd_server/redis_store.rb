@@ -30,7 +30,7 @@ module StatsdServer
         gauges.each_pair do |key, value|
           $redis.sadd "datapoints", "gauges:#{key}"
           value.each do |v|
-            StatsdServer::Diskstore.enqueue("store!", "gauges:#{key}", v[0], v[1])
+            StatsdServer::Diskstore.enqueue_gauge("store!", "gauges:#{key}", v[0], v[1])
           end
           $num_stats += 1
         end
