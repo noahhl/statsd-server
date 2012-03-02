@@ -18,12 +18,6 @@ module StatsdServer
         $redis.lpush "diskstoreQueue", "#{type}\x0#{filename}\x0#{value}"
       end
 
-      def enqueue_truncation(type, statistic, *args)
-        filename = calc_filename(statistic)
-        value = args.join(" ")
-        $redis.lpush "truncateQueue", "#{type}\x1#{filename}\x1#{value}"
-      end
-
       def enqueue_gauge(type, statistic, *args)
         filename = calc_filename(statistic)
         value = args.join(" ")

@@ -3,18 +3,22 @@ module StatsdServer
     class << self
       
       def cleanup!
+
         $redis.smembers("datapoints") do |datapoints|
+
           timing = Benchmark.measure do 
-            StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from redis." if $options[:debug]
             retention = $config['retention'][0]
             since = Time.now.to_i - (retention[:interval] * retention[:count])
+            
             datapoints.each do |datapoint|
-              StatsdServer.logger "Clearing #{datapoint} from redis since #{since}." if $options[:debug]
               $redis.zremrangebyscore datapoint, 0, since
             end
           end
+
           StatsdServer.logger "Finished truncating redis in #{timing.real} seconds" if $options[:debug]
+
         end
+
       end
 
       def flush!(counters, gauges, timers)
@@ -42,7 +46,8 @@ module StatsdServer
             store_all_retentions "timers:#{key}:mean", values.mean.to_s
             store_all_retentions "timers:#{key}:max", values.max.to_s
             store_all_retentions "timers:#{key}:min", values.min.to_s
-            store_all_retentions "timers:#{key}:upper_#{pct_threshold}", values.send("percentile_#{pct_threshold}").to_s
+            store_all_retentions "timers:#{key}:upper_#{pct_threshold}", 
+                                  values.send("percentile_#{pct_threshold}").to_s
             store_all_retentions "timers:#{key}:count", values.count.to_s
             store_all_retentions "timers:#{key}:mean_squared", values.mean_squared.to_s
             $num_stats += 1
@@ -75,6 +80,7 @@ module StatsdServer
               "R#{data}"
           end
         end
+        
     end
   end
 end

@@ -49,14 +49,22 @@ module StatsdServer
       def run(options)
         $options = options
         $config = YAML::load(ERB.new(IO.read($options[:config])).result)
-        $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
+        $config["retention"] = $config["retention"].split(",").collect do |r| 
+          retention = {}
+          retention[:interval], retention[:count] = r.split(":").map(&:to_i)
+          retention 
+        end
 
         # Start the server
         EventMachine::run do
           EventMachine.threadpool_size = 500 
+
           #Bind to the socket and gather the incoming datapoints
-          EventMachine::open_datagram_socket($config['bind'], $config['port'], StatsdServer::Server)  
-          EventMachine::start_server($config['bind'], ($config['info_port'] || $config['port']+1), StatsdServer::Server::InfoServer)  
+          EventMachine::open_datagram_socket($config['bind'], $config['port'], StatsdServer::Server)
+
+          #Bind to the info_port socket OR the next socket up
+          EventMachine::start_server($config['bind'], ($config['info_port'] || $config['port']+1), 
+                                     StatsdServer::Server::InfoServer)
 
           # On the flush interval, do the primary aggregation and flush it to
           # a redis zset
@@ -66,7 +74,7 @@ module StatsdServer
           end
 
           # At every retention that's longer than the flush interval, 
-          # perform an aggregation and store it to disk
+          # enqeue a task to aggregate it and store it to disk
           $config['retention'].each_with_index do |retention, index|
             unless index.zero?
               EventMachine::add_periodic_timer(retention[:interval]) do
@@ -76,7 +84,7 @@ module StatsdServer
           end
 
           # On the cleanup interval, clean up those values that are past their
-          # retention limit
+          # retention limit in redis only.
           EventMachine::add_periodic_timer($config['cleanup_interval']) do
             $last_cleanup = Time.now
             EM.defer { StatsdServer::RedisStore.cleanup! }
