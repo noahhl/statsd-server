@@ -11,7 +11,7 @@ cleanup_interval: 3000
 
 #Number of aggregation and diskwriting workers to spawn.
 #Default is one
-workers: 0
+workers: 2
 
 # Redis
 redis_host: localhost 

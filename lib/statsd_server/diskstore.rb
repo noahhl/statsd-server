@@ -8,7 +8,6 @@ module StatsdServer
       def calc_filename(statistic)
         return unless statistic
         file_hash = Digest::MD5.hexdigest(statistic)
-        FileUtils.mkdir_p File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2])
         File.join($config["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
       end
 
@@ -25,6 +24,7 @@ module StatsdServer
       end
 
       def store!(filename, value)
+        FileUtils.mkdir_p filename.split("/")[0..-2].join("/")
         File.open(filename, 'a+') do |file|
           file.write("#{value}\n")
           file.close
