@@ -7,11 +7,13 @@ module StatsdServer
             $redis.llen("diskstoreQueue") do |disk_queue_size|
               $redis.llen("aggregationQueue") do |aggregation_queue_size|
                 $redis.llen("gaugeQueue") do |gauge_queue_size|
-                  send_data <<-info
+                  $redis.llen("truncateQueue") do |truncate_queue_size|
+                    send_data <<-info
 Uptime: #{(Time.now - $started).to_i}
 Total statistics since restart: #{$num_stats}
 Pending truncations: #{disk_queue_size}
 Pending gauge writes: #{gauge_queue_size}
+Other pending diskops: #{truncate_queue_size}
 Pending aggregations: #{aggregation_queue_size}
 Time since last cleanup: #{(Time.now - $last_cleanup).to_i}
 Number of workers: #{$workers.count}
@@ -19,7 +21,8 @@ EM threadpool size: #{EM.threadpool_size}
 EM connection count: #{EM.connection_count}
 EM max timers: #{EM.get_max_timers}
 EM heartbeat interval: #{EM.heartbeat_interval}
-                  info
+                    info
+                  end
                 end
               end
             end
