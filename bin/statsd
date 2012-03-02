@@ -45,7 +45,12 @@ begin
   parser.parse!
 
   config = YAML::load(ERB.new(IO.read(options[:config])).result)
-  options[:workers] = [options[:workers], config["workers"].to_i].max
+
+  if config["workers"].to_i == 0
+    options[:workers] = 0 
+  else
+    options[:workers] = [options[:workers], config["workers"].to_i].max
+  end
 
   # dispatch
   if !options[:config] 

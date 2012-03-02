@@ -2,3 +2,5 @@
 *.gem
 *.swo
 test/data
+src/hiredis
+bin/disk_worker

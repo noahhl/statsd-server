@@ -28,7 +28,7 @@ module StatsdServer
 
       def perform(job)
         StatsdServer.logger "[WORKER] Performing #{job} job." if $options[:debug]
-        args = job.split("\x0")
+        args = job.split(/\x0|\x1/)
         if args[0]== "store!"
           StatsdServer::Diskstore.store!(args[1], args[2])
         elsif args[0]== "truncate!"
