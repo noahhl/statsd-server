@@ -16,7 +16,7 @@ module StatsdServer
         $config = YAML::load(ERB.new(IO.read($options[:config])).result)
         $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
         while true
-          $redis.brpop("aggregationQueue", "gaugeQueue", "diskstoreQueue", 30).tap do |job|
+          $redis.brpop("aggregationQueue", "gaugeQueue", "diskstoreQueue", "truncateQueue", 30).tap do |job|
             if job
               perform(job[1])
             else 

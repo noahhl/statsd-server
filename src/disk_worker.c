@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
-#include <time.h>
 #include "hiredis/hiredis.h"
 
 
@@ -17,7 +16,31 @@ void append_value_to_file(char *filename, char *value)
 
 void truncate_file(char *filename, char *timestamp)
 {
-  printf("%s %s\n", filename, timestamp);
+  FILE *file, *tempfile;
+  char *existing_ts, line[256], *newline, tmp[256];
+  strcpy(tmp, filename);
+  strcat(tmp, ".tmp");
+  if(tempfile = fopen(tmp, "r")) { 
+    printf("Couldn't truncate %s before %s because a tempfile was already present.", filename, 
+                                                                                    timestamp);
+    return; 
+  }
+
+  if(file = fopen(filename, "r")) {
+    tempfile = fopen(tmp, "w");
+    while ( fgets ( line, sizeof line, file ) != NULL ) {
+      newline = line;
+      existing_ts = strtok(line, " ");
+      if(strcmp(existing_ts, timestamp) > 0) {
+        fprintf(tempfile, "%s", newline);
+      }
+    }
+    fclose(file);
+    fclose(tempfile);
+  }
+  if(rename(tmp, filename)) {
+    printf("Error truncating %s\n", filename);
+  }
 }
 
 void handle_diskstore_job(char *job)
@@ -43,16 +66,10 @@ void handle_diskstore_job(char *job)
   }
 }
 
-void log_message(char *message)
-{
-  time_t seconds = time ( NULL);
-  printf ( "%ld: %s\n", seconds, message );
-}
 
 int main(int argc, char *argv[])
 {
-  log_message("Booting up...");
-  
+  printf("Booting up...\n");
   redisReply *reply;
   redisContext *c = redisConnect("127.0.0.1", 6379);
   if (c->err) {
@@ -61,14 +78,14 @@ int main(int argc, char *argv[])
   }
 
   /* PING server */
-  log_message("Pinging redis...");
+  printf("Pinging redis...");
   reply = redisCommand(c,"PING");
-  log_message(reply->str);
+  printf("%s\n", reply->str);
   freeReplyObject(reply);
 
-  log_message("Starting to process disk writing jobs...");
+  printf("Starting to process disk writing jobs...\n");
   while(1) {
-    reply = redisCommand(c,"BRPOP gaugeQueue 30");
+    reply = redisCommand(c,"BRPOP gaugeQueue truncateQueue 30");
     if (reply->type == REDIS_REPLY_ARRAY) {
       if (reply->elements == 2) {
         handle_diskstore_job(reply->element[1]->str);

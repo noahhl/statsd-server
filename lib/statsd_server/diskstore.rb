@@ -13,7 +13,7 @@ module StatsdServer
               since = (Time.now.to_i - (retention[:interval] * retention[:count]))
               datapoints.each do |datapoint|
                 unless index.zero?
-                  enqueue "truncate!",  "#{datapoint}:#{retention[:interval]}", since 
+                  enqueue_truncation "truncate!",  "#{datapoint}:#{retention[:interval]}", since 
                 end
               end
             end
@@ -33,6 +33,12 @@ module StatsdServer
         filename = calc_filename(statistic)
         value = args.join(" ")
         $redis.lpush "diskstoreQueue", "#{type}\x0#{filename}\x0#{value}"
+      end
+
+      def enqueue_truncation(type, statistic, *args)
+        filename = calc_filename(statistic)
+        value = args.join(" ")
+        $redis.lpush "truncateQueue", "#{type}\x1#{filename}\x1#{value}"
       end
 
       def enqueue_gauge(type, statistic, *args)

@@ -32,7 +32,7 @@ class CleanupTest < Test::Unit::TestCase
     StatsdServer::RedisStore.flush!($counters, {}, {})
     StatsdServer::Diskstore.expects(:truncate!).with('test/data/37/2a/372a5d5450ef177a737f6a92c0246436', (Time.now.to_i - 604800).to_s)
     StatsdServer::Diskstore.cleanup!
-    $redis.rpop("diskstoreQueue") do |job|
+    $redis.rpop("truncateQueue") do |job|
       StatsdServer::Queue.perform(job)
     end
   end
