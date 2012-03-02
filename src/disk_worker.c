@@ -43,10 +43,11 @@ void truncate_file(char *filename, char *timestamp)
   }
 }
 
-void handle_diskstore_job(char *job)
+void handle_diskstore_job(char *job, redisContext *redisInstance)
 {
   int i = 0;
   char *end_str, *job_type, *filename, *value;
+  char *originalJob = job;
   char *token = strtok_r(job, "\x1", &end_str);
 
   while (token != NULL) {
@@ -62,7 +63,13 @@ void handle_diskstore_job(char *job)
   } else if (strcmp("truncate!", job_type) == 0) {
     truncate_file(filename, value);
   } else {
-
+      /* 
+         Anything we aren't equipped to handle, stick back into
+         the diskstoreQueue -- the ruby worker alone will touch that an
+         handle it
+      */
+      printf("Passing on %s\n", originalJob);
+      redisCommand(redisInstance, "LPUSH diskstoreQueue %s", originalJob);
   }
 }
 
@@ -71,24 +78,24 @@ int main(int argc, char *argv[])
 {
   printf("Booting up...\n");
   redisReply *reply;
-  redisContext *c = redisConnect("127.0.0.1", 6379);
-  if (c->err) {
-    printf("Error: %s\n", c->errstr);
+  redisContext *redisInstance = redisConnect("127.0.0.1", 6379);
+  if (redisInstance->err) {
+    printf("Error: %s\n", redisInstance->errstr);
     exit(1);
   }
 
   /* PING server */
   printf("Pinging redis...");
-  reply = redisCommand(c,"PING");
+  reply = redisCommand(redisInstance,"PING");
   printf("%s\n", reply->str);
   freeReplyObject(reply);
 
   printf("Starting to process disk writing jobs...\n");
   while(1) {
-    reply = redisCommand(c,"BRPOP gaugeQueue truncateQueue 30");
+    reply = redisCommand(redisInstance,"BRPOP gaugeQueue truncateQueue 30");
     if (reply->type == REDIS_REPLY_ARRAY) {
       if (reply->elements == 2) {
-        handle_diskstore_job(reply->element[1]->str);
+        handle_diskstore_job(reply->element[1]->str, redisInstance);
       }
     }
     freeReplyObject(reply);
