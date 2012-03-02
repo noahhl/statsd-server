@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include "hiredis/hiredis.h"
 
 
@@ -17,11 +18,12 @@ void append_value_to_file(char *filename, char *value)
 void truncate_file(char *filename, char *timestamp)
 {
   FILE *file, *tempfile;
-  char *existing_ts, line[256], *newline, tmp[256];
+  char *existing_ts, line[256], newline[256];
+  char tmp[256];
   strcpy(tmp, filename);
   strcat(tmp, ".tmp");
   if(tempfile = fopen(tmp, "r")) { 
-    printf("Couldn't truncate %s before %s because a tempfile was already present.", filename, 
+    printf("Couldn't truncate %s before %s because a tempfile was already present.\n", filename, 
                                                                                     timestamp);
     return; 
   }
@@ -29,7 +31,7 @@ void truncate_file(char *filename, char *timestamp)
   if(file = fopen(filename, "r")) {
     tempfile = fopen(tmp, "w");
     while ( fgets ( line, sizeof line, file ) != NULL ) {
-      newline = line;
+      strcpy(newline, line);
       existing_ts = strtok(line, " ");
       if(strcmp(existing_ts, timestamp) > 0) {
         fprintf(tempfile, "%s", newline);
@@ -38,9 +40,10 @@ void truncate_file(char *filename, char *timestamp)
     fclose(file);
     fclose(tempfile);
   }
-  if(rename(tmp, filename)) {
-    printf("Error truncating %s\n", filename);
+  if(rename(tmp, filename) == -1) {
+    printf("Error truncating %s: error %s\n", filename, strerror(errno));
   }
+  unlink(tmp);
 }
 
 void handle_diskstore_job(char *job, redisContext *redisInstance)
