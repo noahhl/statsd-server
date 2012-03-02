@@ -4,23 +4,6 @@ require 'fileutils'
 module StatsdServer
   class Diskstore
     class << self
-      
-      def cleanup!
-        $redis.smembers("datapoints") do |datapoints|
-          timing = Benchmark.measure do 
-            StatsdServer.logger "Cleaning up #{datapoints.length} datapoints from diskstore.\n"  if $options[:debug]
-            $config["retention"].each_with_index do |retention, index|
-              since = (Time.now.to_i - (retention[:interval] * retention[:count]))
-              datapoints.each do |datapoint|
-                unless index.zero?
-                  enqueue_truncation "truncate!",  "#{datapoint}:#{retention[:interval]}", since 
-                end
-              end
-            end
-          end
-          StatsdServer.logger "Finished truncating diskstore in #{timing.real} seconds" if $options[:debug]
-        end
-      end
 
       def calc_filename(statistic)
         return unless statistic
