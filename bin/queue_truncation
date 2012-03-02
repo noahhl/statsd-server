@@ -1,0 +1,65 @@
+#!/usr/bin/env ruby
+#
+# This script should be used to enqueue diskstore truncation
+# jobs - this prevents them from being queued during the
+# main event machine loop. This should be cronned for each of your
+# disk based retention intervals at something that makes sense for
+# them -- it doesn't make sense to truncate data that is allowed to 
+# grow out for five years a few times a day. In fact, it doesn't make
+# sense to waste time checking if you need to truncate it until you get
+# close to 5 years.
+# Cleanup of the redis store remains in the main EM loop.
+
+require 'rubygems'
+require 'yaml'
+require 'erb'
+require 'optparse'
+require 'digest'
+require 'redis'
+
+options = {:debug => false}
+
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: queue_truncation [options] aggregation"
+
+  opts.separator ""
+  opts.separator "options:"
+
+  opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
+   options[:config] = x 
+  end
+    
+  opts.on("-d", "--debug", "Debug mode") do
+    options[:debug] = true
+  end
+
+  opts.on("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+
+end
+parser.parse!
+aggregation = ARGV[0]
+
+config = YAML::load(ERB.new(IO.read(options[:config])).result)
+config["retention"] = config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
+retention = config["retention"].find{|r| r[:interval] == aggregation.to_i}
+since = (Time.now.to_i - (retention[:interval] * retention[:count]))
+redis = Redis.new({:host =>config["redis_host"], :port => config["redis_port"]})
+
+datapoints = redis.smembers("datapoints")
+
+
+def calc_filename(statistic, config)
+  return unless statistic
+  file_hash = Digest::MD5.hexdigest(statistic)
+  File.join(config["coalmine_data_path"], file_hash[0,2], file_hash[2,2], file_hash)
+end
+
+datapoints.each do |datapoint|
+  filename = calc_filename("#{datapoint}:#{retention[:interval]}", config)
+  value = since
+  redis.lpush "truncateQueue", "truncate!\x1#{filename}\x1#{value}"
+end
+

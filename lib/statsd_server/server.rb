@@ -79,8 +79,7 @@ module StatsdServer
           # retention limit
           EventMachine::add_periodic_timer($config['cleanup_interval']) do
             $last_cleanup = Time.now
-            StatsdServer::RedisStore.cleanup!
-            StatsdServer::Diskstore.cleanup!
+            EM.defer { StatsdServer::RedisStore.cleanup! }
           end
 
         end
