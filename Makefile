@@ -1,9 +1,9 @@
-CFLAGS=-Wall -g
+CFLAGS=-Wall -g -static
 
 all: bin/disk_worker
 
 bin/disk_worker: src/disk_worker.c src/config.h src/diskstore.h src/hiredis/libhiredis.so
-	cc src/disk_worker.c src/config.c src/diskstore.c -o bin/disk_worker -lhiredis
+	cc src/disk_worker.c src/config.c src/diskstore.c -o bin/disk_worker -Lsrc/hiredis -lhiredis
 
 src/hiredis/libhiredis.so:
 	cd src/hiredis && make
