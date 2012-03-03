@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
   }
 
   /* PING server */
-  printf("Pinging redis at...");
+  printf("Pinging redis...");
   reply = redisCommand(redisInstance,"PING");
   printf("%s\n", reply->str);
   freeReplyObject(reply);
