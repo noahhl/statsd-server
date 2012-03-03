@@ -4,6 +4,34 @@
 #include <signal.h>
 #include <errno.h>
 #include "diskstore.h"
+#include "md5.h"
+
+
+char *calculate_statsd_filename(char *name, char *db_path)
+{
+  md5_state_t state;
+  md5_byte_t digest[16];
+  int i;
+  md5_init(&state);
+  md5_append(&state, (const md5_byte_t *)name, strlen(name));
+  md5_finish(&state, digest);
+  
+  char hash[32];
+  char tmp[2];
+  int j = 0;
+  for (i = 0; i < 16; i++) {
+    sprintf(tmp, "%02x", digest[i]);
+    if (i == 0 ) {
+      strcpy(hash, tmp);
+    } else {
+      strcat(hash, tmp);
+    }
+  }
+
+  char result[256];
+  sprintf(result, "%s%c%c/%c%c/%s", db_path, hash[0], hash[1], hash[2], hash[3], hash);
+  return strdup(result);
+}
 
 void append_value_to_file(char *filename, char *value)
 {
