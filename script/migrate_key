@@ -22,7 +22,7 @@ parser.parse!
 oldname = ARGV[0]
 newname = ARGV[1]
 
-config = YAML::load(ERB.new(IO.read(options[:config])).result)
+config = YAML.load_file(options[:config])
 ENV["coalmine_data_path"] = config['coalmine_data_path']
 @redis = Redis.new({:host => config["redis_host"], :port => config["redis_port"]})
 

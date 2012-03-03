@@ -1,9 +1,9 @@
 CFLAGS=-Wall -g
 
-all: disk_worker
+all: bin/disk_worker
 
-disk_worker: src/disk_worker.c src/hiredis/libhiredis.so
-	cc src/disk_worker.c -o bin/disk_worker -lhiredis
+bin/disk_worker: src/disk_worker.c src/config.h src/hiredis/libhiredis.so
+	cc src/disk_worker.c src/config.c -o bin/disk_worker -lhiredis
 
 src/hiredis/libhiredis.so:
 	cd src/hiredis && make

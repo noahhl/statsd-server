@@ -12,7 +12,6 @@
 
 require 'rubygems'
 require 'yaml'
-require 'erb'
 require 'optparse'
 require 'digest'
 require 'redis'
@@ -42,7 +41,7 @@ end
 parser.parse!
 aggregation = ARGV[0]
 
-config = YAML::load(ERB.new(IO.read(options[:config])).result)
+config = YAML.load_file(options[:config])
 config["retention"] = config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
 retention = config["retention"].find{|r| r[:interval] == aggregation.to_i}
 since = (Time.now.to_i - (retention[:interval] * retention[:count]))

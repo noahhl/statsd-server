@@ -3,7 +3,6 @@
 $LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
 require 'rubygems'
 require 'yaml'
-require 'erb'
 require 'optparse'
 
 require 'statsd_server/version'
@@ -44,7 +43,7 @@ begin
 
   parser.parse!
 
-  config = YAML::load(ERB.new(IO.read(options[:config])).result)
+  config = YAML.load_file(options[:config])
 
   if config["workers"].to_i == 0
     options[:workers] = 0 

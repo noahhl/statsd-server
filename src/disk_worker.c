@@ -4,7 +4,7 @@
 #include <signal.h>
 #include <errno.h>
 #include "hiredis/hiredis.h"
-
+#include "config.h"
 
 void append_value_to_file(char *filename, char *value)
 {
@@ -80,15 +80,16 @@ void handle_diskstore_job(char *job, redisContext *redisInstance)
 int main(int argc, char *argv[])
 {
   printf("Booting up...\n");
+  statsdConfig *config = loadStatsdConfig(argv[1]);
   redisReply *reply;
-  redisContext *redisInstance = redisConnect("127.0.0.1", 6379);
+  redisContext *redisInstance = redisConnect(config->redis_host, config->redis_port);
   if (redisInstance->err) {
     printf("Error: %s\n", redisInstance->errstr);
     exit(1);
   }
 
   /* PING server */
-  printf("Pinging redis...");
+  printf("Pinging redis at...");
   reply = redisCommand(redisInstance,"PING");
   printf("%s\n", reply->str);
   freeReplyObject(reply);

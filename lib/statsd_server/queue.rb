@@ -13,7 +13,7 @@ module StatsdServer
       def work!(options)
         StatsdServer.logger "[WORKER] Starting to monitor queue for jobs to to aggregate or write to disk." 
         $options = options
-        $config = YAML::load(ERB.new(IO.read($options[:config])).result)
+        $config = YAML.load_file($options[:config])
         $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
         while true
           $redis.brpop("aggregationQueue", "gaugeQueue", "diskstoreQueue", "truncateQueue", 30).tap do |job|

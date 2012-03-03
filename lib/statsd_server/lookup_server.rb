@@ -49,7 +49,7 @@ module StatsdServer
     class Daemon
       def run(options)
         $options = options
-        $config = YAML::load(ERB.new(IO.read($options[:config])).result)
+        $config = YAML.load_file($options[:config])
         $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
 
         # Start the server

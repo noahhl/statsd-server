@@ -9,7 +9,7 @@ class CleanupTest < Test::Unit::TestCase
   def setup
     options = {:config => "test/config.yml"}
     #ENV["silent"] = "true"
-    $config = YAML::load(ERB.new(IO.read(options[:config])).result)
+    $config = YAML.load_file(options[:config])
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
     $redis = RedisCustom.new({:host => $config["redis_host"], :port => $config["redis_port"]})
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
