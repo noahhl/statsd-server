@@ -5,46 +5,8 @@
 #include <errno.h>
 #include "hiredis/hiredis.h"
 #include "config.h"
+#include "diskstore.h"
 
-void append_value_to_file(char *filename, char *value)
-{
-  FILE *file;
-  if(file = fopen(filename,"a+")) {   
-    fprintf(file, "%s\n", value);
-    fclose(file); 
-  }
-}
-
-void truncate_file(char *filename, char *timestamp)
-{
-  FILE *file, *tempfile;
-  char *existing_ts, line[256], newline[256];
-  char tmp[256];
-  strcpy(tmp, filename);
-  strcat(tmp, ".tmp");
-  if(tempfile = fopen(tmp, "r")) { 
-    printf("Couldn't truncate %s before %s because a tempfile was already present.\n", filename, 
-                                                                                    timestamp);
-    return; 
-  }
-
-  if(file = fopen(filename, "r")) {
-    tempfile = fopen(tmp, "w");
-    while ( fgets ( line, sizeof line, file ) != NULL ) {
-      strcpy(newline, line);
-      existing_ts = strtok(line, " ");
-      if(strcmp(existing_ts, timestamp) > 0) {
-        fprintf(tempfile, "%s", newline);
-      }
-    }
-    fclose(file);
-    fclose(tempfile);
-  }
-  if(rename(tmp, filename) == -1) {
-    printf("Error truncating %s: error %s\n", filename, strerror(errno));
-  }
-  unlink(tmp);
-}
 
 void handle_diskstore_job(char *job, redisContext *redisInstance)
 {
@@ -80,6 +42,11 @@ void handle_diskstore_job(char *job, redisContext *redisInstance)
 int main(int argc, char *argv[])
 {
   printf("Booting up...\n");
+  if( argc != 2 || fopen(argv[1], "r") == NULL) {
+    printf("Config file not specified or found. Exiting...\n");
+    return 1;
+  }
+
   statsdConfig *config = loadStatsdConfig(argv[1]);
   redisReply *reply;
   redisContext *redisInstance = redisConnect(config->redis_host, config->redis_port);
