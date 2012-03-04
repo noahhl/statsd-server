@@ -14,3 +14,6 @@ src/contrib/hiredis/libhiredis.so:
 clean:
 	rm -f bin/disk_worker
 	make all
+
+check:
+	@cd tests && make -s
