@@ -33,12 +33,65 @@ char *calculate_statsd_filename(char *name, char *db_path)
   return strdup(result);
 }
 
+char *calculate_statsd_directory_from_path(char *path)
+{
+  char *token, *end_str, dirpath[256];
+  char *components[20];
+  token = strdup(path);
+  token = strtok_r(token, "/", &end_str);
+  components[0] = token;
+  int i = 1;
+  while(token != NULL) {
+    token = strtok_r(NULL, "/", &end_str);
+    components[i] = token;
+    i++;
+  }
+  strcpy(dirpath, components[0]);
+  int j;
+  for(j=1; j < (i-2); j++) {
+    strcat(dirpath, "/");
+    strcat(dirpath, components[j]);
+  }
+  strcat(dirpath, "/");
+  return strdup(dirpath);
+}
+
+void mkdir_p(char *path)
+{
+  char *end_str, *token = strdup(path);
+
+  token = strtok_r(token, "/", &end_str);
+  char *targetdir = strdup(token);
+  while(token != NULL) {
+    printf("Creating %s\n", targetdir);
+    mkdir(targetdir);
+    token = strtok_r(NULL, "/", &end_str);
+    strcat(targetdir, "/");
+    strcat(targetdir, token);
+
+  }
+}
+
 void append_value_to_file(char *filename, char *value)
 {
   FILE *file;
-  if(file = fopen(filename,"a+")) {   
+  if(file = fopen(filename,"a+")) {
     fprintf(file, "%s\n", value);
     fclose(file); 
+  } else {
+    if (errno == 2) {
+      char *dirpath = calculate_statsd_directory_from_path(filename);
+      printf("Needed directory at %s, creating it.\n", dirpath);
+      mkdir_p(dirpath);
+      if(file = fopen(filename,"a+")) {
+        fprintf(file, "%s\n", value);
+        fclose(file); 
+      } else {
+        printf("Error appending to %s: error %s\n", filename, strerror(errno));  
+      }
+    
+    }
+    
   }
 }
 
@@ -49,7 +102,7 @@ void truncate_file(char *filename, char *timestamp)
   char tmp[256];
   strcpy(tmp, filename);
   strcat(tmp, ".tmp");
-  if(tempfile = fopen(tmp, "r")) { 
+  if(tempfile = fopen(tmp, "r")) {
     printf("Couldn't truncate %s before %s because a tempfile was already present.\n", filename, 
                                                                                     timestamp);
     return; 

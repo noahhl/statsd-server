@@ -4,3 +4,4 @@
 test/data
 src/hiredis
 bin/disk_worker
+tests/*.test

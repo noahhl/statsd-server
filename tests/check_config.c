@@ -16,6 +16,7 @@ static char * test_config_parsing() {
 static char * test_legacy_config() {
    statsdConfig *config = loadStatsdConfig("fixtures/legacy_config.yml");
    mu_assert("db_host is extracted correctly", strcmp(config->db_path, "tmp/statsd/") == 0);
+   return 0;
 }
 
 static char * all_tests() {

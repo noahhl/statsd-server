@@ -5,36 +5,25 @@
 #include <errno.h>
 #include "contrib/hiredis/hiredis.h"
 #include "config.h"
+#include "queue.h"
 #include "diskstore.h"
 
 
-void handle_diskstore_job(char *job, redisContext *redisInstance)
+void handle_diskstore_job(char *job_spec, redisContext *redisInstance)
 {
-  int i = 0;
-  char *end_str, *job_type, *filename, *value;
-  char *originalJob = job;
-  char *token = strtok_r(job, "\x1", &end_str);
-
-  while (token != NULL) {
-    if (i == 0) { job_type = token; };
-    if (i == 1) { filename = token; };
-    if (i == 2) { value = token; };
-    token = strtok_r(NULL, "\x1", &end_str);
-    i++;
-  }
-
-  if (strcmp("store!", job_type) == 0) {
-    append_value_to_file(filename, value);
-  } else if (strcmp("truncate!", job_type) == 0) {
-    truncate_file(filename, value);
+  Job *job = parse_queue_job(job_spec);
+  if (strcmp("store!", job->type) == 0) {
+    append_value_to_file(job->args[0], job->args[1]);
+  } else if (strcmp("truncate!", job->type) == 0) {
+    truncate_file(job->args[0], job->args[1]);
   } else {
       /* 
          Anything we aren't equipped to handle, stick back into
          the diskstoreQueue -- the ruby worker alone will touch that an
          handle it
       */
-      printf("Passing on %s\n", originalJob);
-      redisCommand(redisInstance, "LPUSH diskstoreQueue %s", originalJob);
+      printf("Passing on %s\n", job_spec);
+      redisCommand(redisInstance, "LPUSH diskstoreQueue %s", job_spec);
   }
 }
 
