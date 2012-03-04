@@ -1,8 +1,12 @@
 CFLAGS=-Wall -g -O1
 
-all: config
+all: config diskstore
 	@rm *.test
 
 config: check_config.c
-	@cc check_config.c -o config.test
+	@cc check_config.c ../src/config.c -o config.test
 	@./config.test
+
+diskstore: check_diskstore.c
+	@cc check_diskstore.c ../src/diskstore.c ../src/contrib/md5.c -o diskstore.test
+	@./diskstore.test
