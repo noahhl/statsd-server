@@ -4,7 +4,7 @@
 #include <signal.h>
 #include <errno.h>
 #include "diskstore.h"
-#include "md5.h"
+#include "contrib/md5.h"
 
 
 char *calculate_statsd_filename(char *name, char *db_path)

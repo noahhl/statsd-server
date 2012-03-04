@@ -3,7 +3,7 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
-#include "hiredis/hiredis.h"
+#include "contrib/hiredis/hiredis.h"
 #include "config.h"
 #include "diskstore.h"
 
