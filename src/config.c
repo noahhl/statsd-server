@@ -24,8 +24,11 @@ statsdConfig *loadStatsdConfig(char *path)
       char *end = value + strlen(value) - 1;
       while(end > value && (isspace(*end) || *end == '"')) end--;
       *(end+1) = 0;
+
+
       if( strcmp(key, "redis_host") == 0 ) { config->redis_host = strdup(value); }
       if( strcmp(key, "redis_port") == 0 ) {config->redis_port = atoi(value); };
+      
       if( strcmp(key, "retention") == 0 ) {config->retention = strdup(value); };
       //support coalmine_data_path for legacy config files
       if( strcmp(key, "db_path") == 0 || strcmp(key, "coalmine_data_path") == 0 ) {config->db_path = strdup(value); };

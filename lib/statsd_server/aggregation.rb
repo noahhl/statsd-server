@@ -19,7 +19,7 @@ module StatsdServer
                           when /mean|upper_/ then "mean"
                           else "sum"
                           end
-            $redis.lpush("aggregationQueue", "#{now}\x0#{interval}\x0#{key}\x0#{aggregation}")
+            $redis.lpush("aggregationQueue", "aggregate!<X>#{now}<X>#{interval}<X>#{key}<X>#{aggregation}")
             $redis.srem("needsAggregated:#{interval}", key) 
           end
         end

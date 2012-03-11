@@ -28,13 +28,13 @@ module StatsdServer
 
       def perform(job)
         StatsdServer.logger "[WORKER] Performing #{job} job." if $options[:debug]
-        args = job.split(/\x0|\x1/)
+        args = job.split(/\x0|<X>/)
         if args[0]== "store!"
           StatsdServer::Diskstore.store!(args[1], args[2])
         elsif args[0]== "truncate!"
           StatsdServer::Diskstore.truncate!(args[1], args[2])
-        else
-          StatsdServer::Aggregation.new(args[2], args[1].to_i, args[3], args[0].to_i).store!
+        elsif args[0] == "aggregate!"
+          StatsdServer::Aggregation.new(args[3], args[2].to_i, args[4], args[1].to_i).store!
         end
       end
 

@@ -59,6 +59,6 @@ end
 datapoints.each do |datapoint|
   filename = calc_filename("#{datapoint}:#{retention[:interval]}", config)
   value = since
-  redis.lpush "truncateQueue", "truncate!\x1#{filename}\x1#{value}"
+  redis.lpush "truncateQueue", "truncate!<X>#{filename}<X>#{value}"
 end
 

@@ -13,19 +13,19 @@ Job *parse_queue_job(char *job_spec)
   job->defined = 0;
   char *spec = strdup(job_spec);
   char *end_str;
-  char *token = strtok_r(spec, "\x1", &end_str);
+  char *token = strtok_r(spec, "<X>", &end_str);
   int i = 0;
   job->nargs = 0;
 
   while (token != NULL) {
     if (i == 0) { 
-      job->type = token;
+      job->type = strdup(token);
       job->defined = 1;
     } else {
-      job->args[job->nargs] = token;
+      job->args[job->nargs] = strdup(token);
       job->nargs++;
     }
-    token = strtok_r(NULL, "\x1", &end_str);
+    token = strtok_r(NULL, "<X>", &end_str);
     i++;
   }
   return job;

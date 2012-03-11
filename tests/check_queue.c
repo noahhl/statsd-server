@@ -7,7 +7,7 @@ int tests_run = 0;
 int assertions_run = 0;
 
 static char * test_parsing_a_store_job() {
-   char *job_spec = "store!\x1myfile\x1myvalue";
+   char *job_spec = "store!<X>myfile<X>myvalue";
    Job *job = parse_queue_job(job_spec);
    mu_assert("store! job is created", job->defined == 1);
    mu_assert("store! job type is extracted correctly", strcmp(job->type, "store!") == 0);
@@ -18,7 +18,7 @@ static char * test_parsing_a_store_job() {
 }
 
 static char * test_parsing_a_truncate_job() {
-   char *job_spec = "truncate!\x1myfile\x1since";
+   char *job_spec = "truncate!<X>myfile<X>since";
    Job *job = parse_queue_job(job_spec);
    mu_assert("truncate! job is created", job->defined == 1);
    mu_assert("truncate! job type is extracted correctly", strcmp(job->type, "truncate!") == 0);
@@ -28,9 +28,23 @@ static char * test_parsing_a_truncate_job() {
    return 0;
 }
 
+static char * test_parsing_an_aggregation_job() {
+   char *job_spec = "aggregate!<X>123456<X>60<X>metric<X>mean";   
+   Job *job = parse_queue_job(job_spec);
+   mu_assert("aggregation job is created", job->defined == 1);
+   mu_assert("aggregation job type is extracted correctly", strcmp(job->type, "aggregate!") == 0);
+   mu_assert("aggregate returns four arguments", job->nargs == 4);
+   mu_assert("aggregate! first argument is the time", strcmp(job->args[0], "123456") == 0);
+   mu_assert("aggregate! second argument is the interval", strcmp(job->args[1], "60") == 0);
+   mu_assert("aggregate! third argument is the metric name", strcmp(job->args[2], "metric") == 0);
+   mu_assert("aggregate! fourth argument is the type of aggregation", strcmp(job->args[3], "mean") == 0);
+   return 0;
+}
+
 static char * all_tests() {
    mu_run_test(test_parsing_a_store_job);
    mu_run_test(test_parsing_a_truncate_job);
+   mu_run_test(test_parsing_an_aggregation_job);
    return 0;
 }
 
