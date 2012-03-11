@@ -3,10 +3,10 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include "diskstore.h"
 #include "contrib/md5.h"
-
 
 char *calculate_statsd_filename(char *name, char *db_path)
 {
@@ -19,7 +19,6 @@ char *calculate_statsd_filename(char *name, char *db_path)
   
   char hash[32];
   char tmp[2];
-  int j = 0;
   for (i = 0; i < 16; i++) {
     sprintf(tmp, "%02x", digest[i]);
     if (i == 0 ) {
@@ -78,7 +77,9 @@ void mkdir_p(char *path)
   }
 
   while(token != NULL) {
-    //printf("Creating %s\n", targetdir);
+    #ifdef DEBUG
+      printf("Creating %s\n", targetdir);
+    #endif
     mode_t process_mask = umask(0);
     mkdir(targetdir, S_IRWXU | S_IRWXG | S_IRWXO );
     umask(process_mask);
@@ -93,15 +94,17 @@ void mkdir_p(char *path)
 void append_value_to_file(char *filename, char *value)
 {
   FILE *file;
-  if(file = fopen(filename,"a+")) {
+  if((file = fopen(filename,"a+"))) {
     fprintf(file, "%s\n", value);
     fclose(file); 
   } else {
     if (errno == 2) {
       char *dirpath = calculate_statsd_directory_from_path(filename);
-      //printf("Needed directory at %s, creating it.\n", dirpath);
+      #ifdef DEBUG
+        printf("Needed directory at %s, creating it.\n", dirpath);
+      #endif
       mkdir_p(dirpath);
-      if(file = fopen(filename,"a+")) {
+      if((file = fopen(filename,"a+"))) {
         fprintf(file, "%s\n", value);
         fclose(file); 
       } else {
@@ -120,13 +123,13 @@ void truncate_file(char *filename, char *timestamp)
   char tmp[256];
   strcpy(tmp, filename);
   strcat(tmp, ".tmp");
-  if(tempfile = fopen(tmp, "r")) {
+  if((tempfile = fopen(tmp, "r"))) {
     printf("Couldn't truncate %s before %s because a tempfile was already present.\n", filename, 
                                                                                     timestamp);
     return; 
   }
 
-  if(file = fopen(filename, "r")) {
+  if((file = fopen(filename, "r"))) {
     tempfile = fopen(tmp, "w");
     while ( fgets ( line, sizeof line, file ) != NULL ) {
       strcpy(newline, line);
