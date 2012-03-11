@@ -23,6 +23,15 @@ static char * test_appending() {
    return 0;
 }
 
+static char * test_diskstore_with_deep_folders() {
+   unlink("/tmp/test");
+   append_value_to_file("/tmp/test/foo/bar/me/now", "123456 10");
+   mu_assert("Diskstore appending creates the needed directory tree if it isn't already present.", 
+             fopen("/tmp/test/foo/bar/me/now", "r") != NULL);
+   system("rm -rf /tmp/test");
+   return 0;
+}
+
 static char * test_truncating() {
    int i;
    FILE *file = fopen("/tmp/test", "w");
@@ -43,6 +52,7 @@ static char * all_tests() {
    mu_run_test(test_filename_calculation);
    mu_run_test(test_appending);
    mu_run_test(test_truncating);
+   mu_run_test(test_diskstore_with_deep_folders);
    return 0;
 }
 

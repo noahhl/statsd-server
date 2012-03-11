@@ -3,6 +3,7 @@
 #include <string.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/stat.h>
 #include "diskstore.h"
 #include "contrib/md5.h"
 
@@ -40,13 +41,20 @@ char *calculate_statsd_directory_from_path(char *path)
   token = strdup(path);
   token = strtok_r(token, "/", &end_str);
   components[0] = token;
+
+  if(path[0] == '/') {
+    strcpy(dirpath, "/");
+    strcat(dirpath, components[0]);
+  } else {
+    strcpy(dirpath, components[0]);
+  }
+
   int i = 1;
   while(token != NULL) {
     token = strtok_r(NULL, "/", &end_str);
     components[i] = token;
     i++;
   }
-  strcpy(dirpath, components[0]);
   int j;
   for(j=1; j < (i-2); j++) {
     strcat(dirpath, "/");
@@ -59,16 +67,26 @@ char *calculate_statsd_directory_from_path(char *path)
 void mkdir_p(char *path)
 {
   char *end_str, *token = strdup(path);
-
   token = strtok_r(token, "/", &end_str);
-  char *targetdir = strdup(token);
+  char targetdir[256];
+
+  if (path[0] == '/') {
+    strcpy(targetdir, "/");
+    strcat(targetdir, token);
+  } else {
+    strcpy(targetdir, token);
+  }
+
   while(token != NULL) {
-    printf("Creating %s\n", targetdir);
-    mkdir(targetdir);
+    //printf("Creating %s\n", targetdir);
+    mode_t process_mask = umask(0);
+    mkdir(targetdir, S_IRWXU | S_IRWXG | S_IRWXO );
+    umask(process_mask);
     token = strtok_r(NULL, "/", &end_str);
     strcat(targetdir, "/");
-    strcat(targetdir, token);
-
+    if(token != NULL) {
+      strcat(targetdir, token);
+    }
   }
 }
 
@@ -81,7 +99,7 @@ void append_value_to_file(char *filename, char *value)
   } else {
     if (errno == 2) {
       char *dirpath = calculate_statsd_directory_from_path(filename);
-      printf("Needed directory at %s, creating it.\n", dirpath);
+      //printf("Needed directory at %s, creating it.\n", dirpath);
       mkdir_p(dirpath);
       if(file = fopen(filename,"a+")) {
         fprintf(file, "%s\n", value);
