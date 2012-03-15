@@ -1,6 +1,6 @@
 CFLAGS=-Wall -g
 
-all: config diskstore queue
+all: config diskstore queue aggregate
 	@rm *.test
 
 debug: CFLAGS+=-DDEBUG
@@ -17,3 +17,7 @@ queue: check_queue.c
 diskstore: check_diskstore.c
 	@cc $(CFLAGS) check_diskstore.c ../src/diskstore.c ../src/contrib/md5.c -o diskstore.test
 	@./diskstore.test
+
+aggregate: check_aggregate.c
+	@cc $(CFLAGS) check_aggregate.c ../src/aggregate.c ../src/contrib/md5.c -o aggregate.test
+	@./aggregate.test	

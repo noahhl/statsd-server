@@ -7,6 +7,7 @@
 #include "config.h"
 #include "queue.h"
 #include "diskstore.h"
+#include "aggregate.h"
 
 
 void handle_diskstore_job(char *job_spec, redisContext *redisInstance)
@@ -16,6 +17,8 @@ void handle_diskstore_job(char *job_spec, redisContext *redisInstance)
     append_value_to_file(job->args[0], job->args[1]);
   } else if (strcmp("truncate!", job->type) == 0) {
     truncate_file(job->args[0], job->args[1]);
+  } else if (strcmp("aggregate!", job->type) == 0) {
+    
   } else {
       /* 
          Anything we aren't equipped to handle, stick back into
