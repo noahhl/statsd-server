@@ -44,7 +44,6 @@ int main(int argc, char *argv[])
     exit(1);
   }
 
-
   int since = calculate_truncation_threshold(argv[2], config->retention);
   if (since == 0) {
     printf("Aggregation specified is invalid. Aborting...\n");
@@ -74,6 +73,7 @@ int main(int argc, char *argv[])
       truncate_file(filename, timestamp);
     }
   }
+  freeReplyObject(reply);
   redisFree(redisInstance);
   return 0;
 }

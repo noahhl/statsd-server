@@ -108,7 +108,9 @@ void append_value_to_file(char *filename, char *value)
         fprintf(file, "%s\n", value);
         fclose(file); 
       } else {
-        printf("Error appending to %s: error %s\n", filename, strerror(errno));  
+        #ifdef DEBUG
+          printf("Error appending to %s: error %s\n", filename, strerror(errno));  
+        #endif
       }
     
     }
@@ -124,8 +126,11 @@ void truncate_file(char *filename, char *timestamp)
   strcpy(tmp, filename);
   strcat(tmp, ".tmp");
   if((tempfile = fopen(tmp, "r"))) {
-    printf("Couldn't truncate %s before %s because a tempfile was already present.\n", filename, 
-                                                                                    timestamp);
+    #ifdef DEBUG
+      printf("Couldn't truncate %s before %s because a tempfile was already present.\n", filename, 
+                                                                                      timestamp);
+    #endif
+
     return; 
   }
 
@@ -142,7 +147,9 @@ void truncate_file(char *filename, char *timestamp)
     fclose(tempfile);
   }
   if(rename(tmp, filename) == -1) {
-    printf("Error truncating %s: error %s\n", filename, strerror(errno));
+    #ifdef DEBUG
+      printf("Error truncating %s: error %s\n", filename, strerror(errno));
+    #endif
   }
   unlink(tmp);
 }
