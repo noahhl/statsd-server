@@ -1,0 +1,2 @@
+script: "bundle exec rake && make check"
+rvm: 1.9.3
