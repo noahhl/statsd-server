@@ -20,6 +20,7 @@ Gem::Specification.new do |s|
   s.add_dependency "redis"
 
   s.add_development_dependency "timecop"
+  s.add_development_dependency "rake"
   s.add_development_dependency "mocha"
 
   s.files        = `git ls-files`.split("\n")
