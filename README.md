@@ -1,4 +1,4 @@
-StatsD
+StatsD [![Build Status](https://secure.travis-ci.org/noahhl/statsd-server.png?branch=master)](http://travis-ci.org/noahhl/statsd-server)
 ======
 
 A network daemon for aggregating statistics (counters and timers), rolling them up, then sending them to a hybrid redis + disk store. 
