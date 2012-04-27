@@ -24,7 +24,7 @@ module StatsdServer
       def flush!(counters, gauges, timers)
         StatsdServer.logger "Flushing #{counters.count} counters, #{gauges.count} gauges and #{timers.count} timers to Redis\n"
         @now = Time.now.to_i
-        
+ 
         #store counters
         counters.each_pair do |key, value|
           store_all_retentions "counters:#{key}", value
@@ -53,6 +53,7 @@ module StatsdServer
             $num_stats += 1
           end
         end
+        StatsdServer.logger "Flushed metrics in #{Time.now.to_f - @now} seconds" if $options[:debug]
       end
       
       def compute_value_for_key(data, now)
@@ -68,7 +69,7 @@ module StatsdServer
               $redis.sadd "datapoints", key 
               $redis.zadd key, @now, compute_value_for_key(value.to_s, @now)
             else
-              $redis.sadd("needsAggregated:#{retention[:interval]}", key)
+              $needsAggregated[retention[:interval]].push key
             end
           end
         end

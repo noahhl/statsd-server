@@ -12,6 +12,7 @@ class RedisFlushTest < Test::Unit::TestCase
     ENV["silent"] = "true"
     $config = YAML.load_file(options[:config])
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
+    $config["retention"].each { |retention| $needsAggregated[retention[:interval]] = [] }
     $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
     StatsdServer::UDP.parse_incoming_message("test_timer:1|ms")
@@ -57,11 +58,11 @@ class RedisFlushTest < Test::Unit::TestCase
   end
 
   def test_adding_to_redis_queues_aggregations
-    assert_empty $redis.smembers "needsAggregated:60"
-    assert_empty $redis.smembers "needsAggregated:600"
+    assert_empty $needsAggregated[60] 
+    assert_empty $needsAggregated[600]
     StatsdServer::RedisStore.flush!($counters, {}, {})
-    assert_equal ["counters:test_counter"], $redis.smembers("needsAggregated:60")
-    assert_equal ["counters:test_counter"], $redis.smembers("needsAggregated:600")
+    assert_equal ["counters:test_counter"],$needsAggregated[60] 
+    assert_equal ["counters:test_counter"], $needsAggregated[600]
   end
 
   def test_updating_counter_adds_datapoints_but_not_keys

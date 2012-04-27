@@ -26,6 +26,7 @@ class AggregationTest < Test::Unit::TestCase
     ENV["silent"] = "true"
     $config = YAML.load_file(options[:config])
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
+    $config["retention"].each { |retention| $needsAggregated[retention[:interval]] = [] }
     $redis = RedisCustom.new({:host => $config["redis_host"], :port => $config["redis_port"]})
   end
 
@@ -72,13 +73,11 @@ class AggregationTest < Test::Unit::TestCase
   end
 
   def test_aggregating_pending_aggregates_and_clears_all_pending_metrics
-    $redis.sadd "needsAggregated:60", "test1"
-    $redis.sadd "needsAggregated:600", "test1"
+    $needsAggregated[60] = ["test1"]
+    $needsAggregated[600] = ["test1"]
     StatsdServer::Diskstore.stubs(:"store!").returns(true)
-    StatsdServer::Aggregation.aggregate_pending!(60)
-    assert_equal 0, $redis.scard("needsAggregated:60")
-    StatsdServer::Aggregation.aggregate_pending!(600)
-    assert_equal 0, $redis.scard("needsAggregated:600")
+    StatsdServer::Aggregation.aggregate_pending!(60, $needsAggregated[60])
+    StatsdServer::Aggregation.aggregate_pending!(600, $needsAggregated[600])
   end
 
   def test_calculating_aggregates_over_time_periods_captures_full_dataset
@@ -102,7 +101,7 @@ class AggregationTest < Test::Unit::TestCase
     assert_equal 0, $redis.llen("aggregationQueue")
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
     StatsdServer::RedisStore.flush!($counters, {}, {})
-    StatsdServer::Aggregation.aggregate_pending!(60)
+    StatsdServer::Aggregation.aggregate_pending!(60, ["counters:test_count"])
     assert_equal 1, $redis.llen("aggregationQueue")
   end
 

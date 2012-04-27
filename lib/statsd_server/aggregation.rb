@@ -2,14 +2,13 @@ require 'array'
 module StatsdServer
   class Aggregation
 
-
     # For a given interval, grab the list of keys that
     # need to be aggregated from the appropriate redis set.
     # Aggregate them across the interval, and store them to disk
-    def self.aggregate_pending!(interval)
+    def self.aggregate_pending!(interval, needsAggregated)
       now = Time.now.to_i
       StatsdServer.logger "Starting aggregation for #{interval} interval" if $options[:debug]
-      $redis.smembers("needsAggregated:#{interval}") do |keys|
+      needsAggregated.uniq.tap do |keys|
         timing = Benchmark.measure do
           keys.each do |key|
             aggregation = case key
@@ -20,7 +19,6 @@ module StatsdServer
                           else "sum"
                           end
             $redis.lpush("aggregationQueue", "aggregate!<X>#{now}<X>#{interval}<X>#{key}<X>#{aggregation}")
-            $redis.srem("needsAggregated:#{interval}", key) 
           end
         end
         StatsdServer.logger "Queueed for aggregation and diskstore for #{interval} in #{timing.real} seconds" if $options[:debug]
