@@ -14,6 +14,7 @@ class RedisFlushTest < Test::Unit::TestCase
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
     $config["retention"].each { |retention| $needsAggregated[retention[:interval]] = [] }
     $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
+    $datapoints = []
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
     StatsdServer::UDP.parse_incoming_message("test_timer:1|ms")
     StatsdServer::UDP.parse_incoming_message("test_gauge:1|g")
@@ -53,6 +54,7 @@ class RedisFlushTest < Test::Unit::TestCase
     assert_empty $redis.smembers "datapoints"
     assert_equal 0, $redis.zcard("counters:test_counter")
     StatsdServer::RedisStore.flush!($counters, {}, {})
+    StatsdServer::RedisStore.update_datapoint_list!
     assert_equal ["counters:test_counter"], $redis.smembers("datapoints")
     assert_equal 1, $redis.zcard("counters:test_counter")
   end
@@ -61,6 +63,7 @@ class RedisFlushTest < Test::Unit::TestCase
     assert_empty $needsAggregated[60] 
     assert_empty $needsAggregated[600]
     StatsdServer::RedisStore.flush!($counters, {}, {})
+    StatsdServer::RedisStore.update_datapoint_list!
     assert_equal ["counters:test_counter"],$needsAggregated[60] 
     assert_equal ["counters:test_counter"], $needsAggregated[600]
   end
@@ -69,6 +72,7 @@ class RedisFlushTest < Test::Unit::TestCase
     StatsdServer::RedisStore.flush!($counters, {}, {})
     Timecop.freeze(Time.now + 30) do 
       StatsdServer::RedisStore.flush!($counters, {}, {})
+    StatsdServer::RedisStore.update_datapoint_list!
       assert_equal ["counters:test_counter"], $redis.smembers("datapoints")
       assert_equal 2, $redis.zcard("counters:test_counter")
     end
@@ -77,12 +81,14 @@ class RedisFlushTest < Test::Unit::TestCase
   def test_storing_timer_initially_adds_keys_to_redis
     assert_empty $redis.smembers "datapoints"
     StatsdServer::RedisStore.flush!({}, {}, $timers)
+    StatsdServer::RedisStore.update_datapoint_list!
     assert_equal 6, $redis.scard("datapoints")
     assert_equal ["timers:test_timer:mean"], $redis.keys("*test_timer:mean")
   end
 
   def test_updating_timer_adds_datapoints_but_not_keys
     StatsdServer::RedisStore.flush!({}, {}, $timers)
+    StatsdServer::RedisStore.update_datapoint_list!
     assert_equal 6, $redis.scard("datapoints")
     Timecop.freeze(Time.now + 30) do 
       StatsdServer::RedisStore.flush!({}, {}, $timers)

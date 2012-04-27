@@ -18,6 +18,7 @@ module StatsdServer
     $gauges = {}
     $timers = {}
     $needsAggregated = {}
+    $datapoints = []
     $num_stats = 0
 
     def post_init
@@ -83,6 +84,7 @@ module StatsdServer
                 EM.defer do 
                   StatsdServer::Aggregation.aggregate_pending!(retention[:interval], $needsAggregated[retention[:interval]])
                   $needsAggregated[retention[:interval]] = []
+                  StatsdServer::RedisStore.update_datapoint_list! if index == 1
                 end
               end
             end

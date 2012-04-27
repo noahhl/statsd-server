@@ -21,6 +21,17 @@ module StatsdServer
 
       end
 
+      def update_datapoint_list!
+        if EM.reactor_running?
+          $redis.sadd "datapoints", *$datapoints.uniq
+        else #hax because non EM client doesn't do bulk sadd
+          $datapoints.uniq.each do |datapoint|
+            $redis.sadd 'datapoints', datapoint
+          end
+        end
+        $datapoints = []
+      end
+
       def flush!(counters, gauges, timers)
         StatsdServer.logger "Flushing #{counters.count} counters, #{gauges.count} gauges and #{timers.count} timers to Redis\n"
         @now = Time.now.to_i
@@ -32,7 +43,7 @@ module StatsdServer
         end
 
         gauges.each_pair do |key, value|
-          $redis.sadd "datapoints", "gauges:#{key}"
+          $datapoints.push "gauges:#{key}"
           value.each do |v|
             StatsdServer::Diskstore.enqueue_gauge("store!", "gauges:#{key}", v[0], v[1])
           end
@@ -66,7 +77,7 @@ module StatsdServer
         def store_all_retentions(key, value)
           $config["retention"].each_with_index do |retention, index|
             if index.zero? 
-              $redis.sadd "datapoints", key 
+              $datapoints.push key 
               $redis.zadd key, @now, compute_value_for_key(value.to_s, @now)
             else
               $needsAggregated[retention[:interval]].push key

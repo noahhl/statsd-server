@@ -21,7 +21,7 @@ module StatsdServer
             $redis.lpush("aggregationQueue", "aggregate!<X>#{now}<X>#{interval}<X>#{key}<X>#{aggregation}")
           end
         end
-        StatsdServer.logger "Queueed for aggregation and diskstore for #{interval} in #{timing.real} seconds" if $options[:debug]
+        StatsdServer.logger "Queueed for aggregation and diskstore for #{interval} in #{timing.real} seconds"# if $options[:debug]
       end
     end
 

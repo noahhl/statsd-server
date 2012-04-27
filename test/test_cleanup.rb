@@ -24,6 +24,7 @@ class CleanupTest < Test::Unit::TestCase
 
   def test_cleanup_truncates_redis_zsets  
     StatsdServer::RedisStore.flush!($counters, {}, {})
+    StatsdServer::RedisStore.update_datapoint_list!
     $redis.expects(:zremrangebyscore).with('counters:test_counter', 0, (Time.now.to_i - 21600))
     StatsdServer::RedisStore.cleanup!
   end
