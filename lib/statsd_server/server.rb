@@ -80,8 +80,10 @@ module StatsdServer
             $needsAggregated[retention[:interval]] = []
             unless index.zero?
               EventMachine::add_periodic_timer(retention[:interval]) do
-                StatsdServer::Aggregation.aggregate_pending!(retention[:interval], $needsAggregated[retention[:interval]])
-                $needsAggregated[retention[:interval]] = []
+                EM.defer do 
+                  StatsdServer::Aggregation.aggregate_pending!(retention[:interval], $needsAggregated[retention[:interval]])
+                  $needsAggregated[retention[:interval]] = []
+                end
               end
             end
           end
