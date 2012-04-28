@@ -8,21 +8,24 @@ module StatsdServer
     def self.aggregate_pending!(interval, needsAggregated)
       now = Time.now.to_i
       StatsdServer.logger "Starting aggregation for #{interval} interval" if $options[:debug]
-      needsAggregated.uniq.tap do |keys|
-        timing = Benchmark.measure do
-          keys.each do |key|
-            aggregation = case key
-                          when /min/ then "min"
-                          when /max/ then "max"
-                          when /mean_squared/ then "sum"
-                          when /mean|upper_/ then "mean"
-                          else "sum"
-                          end
-            $redis.lpush("aggregationQueue", "aggregate!<X>#{now}<X>#{interval}<X>#{key}<X>#{aggregation}")
+      timing = Benchmark.measure do
+        keys = needsAggregated.uniq.collect do |key|
+          aggregation = case key
+                        when /min/ then "min"
+                        when /max/ then "max"
+                        when /mean_squared/ then "sum"
+                        when /mean|upper_/ then "mean"
+                        else "sum"
+                        end
+          "aggregate!<X>#{now}<X>#{interval}<X>#{key}<X>#{aggregation}"
+        end
+        unless keys.empty?
+          keys.each_slice(1000) do |subset|
+            $redis.lpush("aggregationQueue", *subset)
           end
         end
-        StatsdServer.logger "Queueed for aggregation and diskstore for #{interval} in #{timing.real} seconds"# if $options[:debug]
       end
+      StatsdServer.logger "Queued for aggregation and diskstore for #{interval} in #{timing.real} seconds"
     end
 
     def initialize(key, interval, aggregation, now = Time.now.to_i)
