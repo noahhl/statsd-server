@@ -21,15 +21,14 @@ module StatsdServer
 
       end
 
-      def update_datapoint_list!
+      def update_datapoint_list!(datapoints = $datapoints)
         if EM.reactor_running?
-          $redis.sadd "datapoints", *$datapoints.uniq
+          $redis.sadd "datapoints", *datapoints.uniq
         else #hax because non EM client doesn't do bulk sadd
-          $datapoints.uniq.each do |datapoint|
+          datapoints.uniq.each do |datapoint|
             $redis.sadd 'datapoints', datapoint
           end
         end
-        $datapoints = []
       end
 
       def flush!(counters, gauges, timers)
