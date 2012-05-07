@@ -12,7 +12,7 @@ class RedisFlushTest < Test::Unit::TestCase
     ENV["silent"] = "true"
     $config = YAML.load_file(options[:config])
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
-    $config["retention"].each { |retention| $needsAggregated[retention[:interval]] = [] }
+    $config["retention"].each { |retention| $needsAggregated[retention[:interval]] = {} }
     $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
     $datapoints = {}
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
@@ -64,8 +64,8 @@ class RedisFlushTest < Test::Unit::TestCase
     assert_empty $needsAggregated[600]
     StatsdServer::RedisStore.flush!($counters, {}, {})
     StatsdServer::RedisStore.update_datapoint_list!
-    assert_equal ["counters:test_counter"],$needsAggregated[60] 
-    assert_equal ["counters:test_counter"], $needsAggregated[600]
+    assert_equal ["counters:test_counter"],$needsAggregated[60].keys
+    assert_equal ["counters:test_counter"], $needsAggregated[600].keys
   end
 
   def test_updating_counter_adds_datapoints_but_not_keys

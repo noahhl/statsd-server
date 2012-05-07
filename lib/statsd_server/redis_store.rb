@@ -79,7 +79,7 @@ module StatsdServer
               $datapoints[key] = nil
               $redis.zadd key, @now, compute_value_for_key(value.to_s, @now)
             else
-              $needsAggregated[retention[:interval]].push key
+              $needsAggregated[retention[:interval]][key] = nil
             end
           end
         end

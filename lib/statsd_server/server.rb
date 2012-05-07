@@ -79,11 +79,11 @@ module StatsdServer
           # At every retention that's longer than the flush interval, 
           # enqeue a task to aggregate it and store it to disk
           $config['retention'].each_with_index do |retention, index|
-            $needsAggregated[retention[:interval]] = []
+            $needsAggregated[retention[:interval]] = {}
             unless index.zero?
               EventMachine::add_periodic_timer(retention[:interval]) do
                 needsAggregated = $needsAggregated[retention[:interval]].dup
-                $needsAggregated[retention[:interval]] = []
+                $needsAggregated[retention[:interval]] = {}
                 EM.defer do 
                   StatsdServer::Aggregation.aggregate_pending!(retention[:interval], needsAggregated )
                 end

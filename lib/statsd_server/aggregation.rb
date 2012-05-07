@@ -9,7 +9,7 @@ module StatsdServer
       now = Time.now.to_i
       StatsdServer.logger "Starting aggregation for #{interval} interval" if $options[:debug]
       timing = Benchmark.measure do
-        keys = needsAggregated.uniq.collect do |key|
+        keys = needsAggregated.collect do |key, value|
           aggregation = case key
                         when /min/ then "min"
                         when /max/ then "max"
