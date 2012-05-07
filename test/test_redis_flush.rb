@@ -14,7 +14,7 @@ class RedisFlushTest < Test::Unit::TestCase
     $config["retention"] = $config["retention"].split(",").collect{|r| retention = {}; retention[:interval], retention[:count] = r.split(":").map(&:to_i); retention }
     $config["retention"].each { |retention| $needsAggregated[retention[:interval]] = [] }
     $redis = Redis.new({:host => $config["redis_host"], :port => $config["redis_port"]})
-    $datapoints = []
+    $datapoints = {}
     StatsdServer::UDP.parse_incoming_message("test_counter:1|c")
     StatsdServer::UDP.parse_incoming_message("test_timer:1|ms")
     StatsdServer::UDP.parse_incoming_message("test_gauge:1|g")

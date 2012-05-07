@@ -18,7 +18,7 @@ module StatsdServer
     $gauges = {}
     $timers = {}
     $needsAggregated = {}
-    $datapoints = []
+    $datapoints = {}
     $num_stats = 0
 
     def post_init
@@ -88,9 +88,8 @@ module StatsdServer
                   StatsdServer::Aggregation.aggregate_pending!(retention[:interval], needsAggregated )
                 end
                 if index == 1
-                  datapoints = $datapoints.dup
-                  $datapoints = []
-                  StatsdServer::RedisStore.update_datapoint_list!(datapoints)
+                  StatsdServer::RedisStore.update_datapoint_list!($datapoints)
+                  $datapoints = {} 
                   $redis.incrby "server:num_processed", $num_stats
                   $num_stats = 0
                 end

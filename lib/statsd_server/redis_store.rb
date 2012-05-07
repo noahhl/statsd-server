@@ -23,9 +23,9 @@ module StatsdServer
 
       def update_datapoint_list!(datapoints = $datapoints)
         if EM.reactor_running?
-          $redis.sadd "datapoints", *datapoints.uniq
+          $redis.sadd "datapoints", *datapoints.collect{|k,v| k} 
         else #hax because non EM client doesn't do bulk sadd
-          datapoints.uniq.each do |datapoint|
+          datapoints.each do |datapoint, null|
             $redis.sadd 'datapoints', datapoint
           end
         end
@@ -42,7 +42,7 @@ module StatsdServer
         end
 
         gauges.each_pair do |key, value|
-          $datapoints.push "gauges:#{key}"
+          $datapoints["gauges:#{key}"] = nil
           value.each do |v|
             StatsdServer::Diskstore.enqueue_gauge("store!", "gauges:#{key}", v[0], v[1])
           end
@@ -76,7 +76,7 @@ module StatsdServer
         def store_all_retentions(key, value)
           $config["retention"].each_with_index do |retention, index|
             if index.zero? 
-              $datapoints.push key 
+              $datapoints[key] = nil
               $redis.zadd key, @now, compute_value_for_key(value.to_s, @now)
             else
               $needsAggregated[retention[:interval]].push key
