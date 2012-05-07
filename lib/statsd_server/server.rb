@@ -82,11 +82,8 @@ module StatsdServer
             $needsAggregated[retention[:interval]] = {}
             unless index.zero?
               EventMachine::add_periodic_timer(retention[:interval]) do
-                needsAggregated = $needsAggregated[retention[:interval]].dup
+                StatsdServer::Aggregation.aggregate_pending!(retention[:interval], $needsAggregated[retention[:interval]])
                 $needsAggregated[retention[:interval]] = {}
-                EM.defer do 
-                  StatsdServer::Aggregation.aggregate_pending!(retention[:interval], needsAggregated )
-                end
                 if index == 1
                   StatsdServer::RedisStore.update_datapoint_list!($datapoints)
                   $datapoints = {} 
