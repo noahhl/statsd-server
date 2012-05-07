@@ -22,12 +22,13 @@ module StatsdServer
     $num_stats = 0
 
     def post_init
-      $started = Time.now
-      $last_cleanup = Time.now
       $redis = EM::Protocols::Redis.connect $config["redis_host"], $config["redis_port"]
       $redis.errback do |code|
         StatsdServer.logger "Error code: #{code}"
       end
+      $redis.set "server:started", Time.now.to_i
+      $redis.set "server:cleanup", Time.now.to_i
+      $redis.set "server:num_processed", 0
       StatsdServer.logger "statsd server started!"
     end
 
@@ -90,6 +91,8 @@ module StatsdServer
                   datapoints = $datapoints.dup
                   $datapoints = []
                   StatsdServer::RedisStore.update_datapoint_list!(datapoints)
+                  $redis.incrby "server:num_processed", $num_stats
+                  $num_stats = 0
                 end
 
               end
@@ -99,7 +102,7 @@ module StatsdServer
           # On the cleanup interval, clean up those values that are past their
           # retention limit in redis only.
           EventMachine::add_periodic_timer($config['cleanup_interval']) do
-            $last_cleanup = Time.now
+            $redis.set "server:cleanup", Time.now.to_i
             EM.defer { StatsdServer::RedisStore.cleanup! }
           end
 

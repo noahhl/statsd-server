@@ -1,0 +1,47 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH.unshift File.expand_path(File.dirname(__FILE__) + '/../lib')
+require 'rubygems'
+require 'yaml'
+require 'optparse'
+require 'redis'
+
+ORIGINAL_ARGV = ARGV.dup
+options = {:config => "config.yml"}
+parser = OptionParser.new do |opts|
+  opts.banner = "Usage: [options]"
+
+  opts.separator ""
+  opts.separator "options:"
+
+  opts.on("-cCONFIG", "--config-file CONFIG", "Configuration file") do |x|
+   options[:config] = x 
+  end
+
+  opts.on("-h", "--help", "Show this message") do
+    puts opts
+    exit
+  end
+
+end
+parser.parse!
+config = YAML.load_file(options[:config])
+
+@redis = Redis.new :host => config["redis_host"], :port => config["redis_port"].to_i
+
+uptime        = Time.now.to_i - @redis.get("server:started").to_i
+pending_gauge = @redis.llen "gaugeQueue"
+pending_agg   = @redis.llen "aggregationQueue"
+pending_trunc = @redis.llen "truncateQueue"
+pending_other = @redis.llen "diskstoreQueue"
+last_cleanup  = Time.now.to_i - @redis.get("server:cleanup").to_i
+num_stats     = @redis.get "server:num_processed"
+
+puts "Uptime: #{uptime}"
+puts "Total statistics since restart: #{num_stats}"
+puts "Pending truncations: #{pending_trunc}"
+puts "Pending gauge writes: #{pending_gauge}"
+puts "Other pending diskops: #{pending_other}"
+puts "Pending aggregations: #{pending_agg}"
+puts "Time since last cleanup: #{last_cleanup}"
+
