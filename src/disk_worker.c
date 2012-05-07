@@ -13,8 +13,14 @@ void handle_diskstore_job(char *job_spec, redisContext *redisInstance)
 {
   Job *job = parse_queue_job(job_spec);
   if (strcmp("store!", job->type) == 0) {
+    #ifdef DEBUG
+      printf("Processing store! for %s %s\n", job->args[0], job->args[1]);
+    #endif
     append_value_to_file(job->args[0], job->args[1]);
   } else if (strcmp("truncate!", job->type) == 0) {
+    #ifdef DEBUG
+      printf("Processing truncate! for %s\n", job_spec);
+    #endif
     truncate_file(job->args[0], job->args[1]);
   } else {
       /* 
@@ -22,7 +28,9 @@ void handle_diskstore_job(char *job_spec, redisContext *redisInstance)
          the diskstoreQueue -- the ruby worker alone will touch that an
          handle it
       */
-      printf("Passing on %s\n", job_spec);
+      #ifdef DEBUG
+        printf("Passing on %s\n", job_spec);
+      #endif
       redisCommand(redisInstance, "LPUSH diskstoreQueue %s", job_spec);
   }
 }
@@ -58,7 +66,7 @@ int main(int argc, char *argv[])
         handle_diskstore_job(reply->element[1]->str, redisInstance);
       }
     }
-    freeReplyObject(reply);
+    //freeReplyObject(reply);
   }
   
   return 0;
